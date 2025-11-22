@@ -131,7 +131,7 @@ jobs:
             esac
             (
               cd luajit2-*
-              make BUILDMODE=static HOST_CC="$HOSTCC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP CFLAGS="-Os -s -flto=auto $CFLAGS" -j$(nproc)
+              make BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI HOST_CC="$HOSTCC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP CFLAGS="-Os -s -flto=auto $CFLAGS" -j$(nproc)
               make install PREFIX= DESTDIR=$DEPS_DIR
             )
             LJIT=1
@@ -242,7 +242,7 @@ jobs:
           esac
           (
             cd luajit2-*
-            make BUILDMODE=static HOST_CC="$HOSTCC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP CFLAGS="-Os -flto=auto $CFLAGS" -j$(nproc)
+            make BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI HOST_CC="$HOSTCC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP CFLAGS="-Os -flto=auto $CFLAGS" -j$(nproc)
             make install PREFIX= DESTDIR=$DEPS_DIR
           )
           LJIT=1
@@ -319,7 +319,7 @@ jobs:
           wget -qO- https://github.com/openresty/luajit2/archive/refs/tags/v${LUAJIT_RELEASE}.tar.gz | tar -xz
           (
             cd luajit2-*
-            make BUILDMODE=static HOST_CC=gcc CC=$CC CFLAGS="-Os -flto=auto $CFLAGS"
+            make BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI HOST_CC=gcc CC=$CC CFLAGS="-Os -flto=auto $CFLAGS"
             make install PREFIX= DESTDIR=$DEPS_DIR
           )
 
@@ -430,7 +430,7 @@ jobs:
           wget -q https://github.com/openresty/luajit2/archive/refs/tags/v${LUAJIT_RELEASE}.tar.gz &&
           tar -xzf v${LUAJIT_RELEASE}.tar.gz &&
           rm -f v${LUAJIT_RELEASE}.tar.gz &&
-          make -C luajit2-${LUAJIT_RELEASE} BUILDMODE=static CFLAGS="-Os -s" &&
+          make -C luajit2-${LUAJIT_RELEASE} BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI CFLAGS="-Os -s" &&
           make -C luajit2-${LUAJIT_RELEASE} install
 
       - name: Build winws
