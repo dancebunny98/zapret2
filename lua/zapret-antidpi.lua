@@ -36,6 +36,7 @@ standard fooling :
 * tcp_md5[=hex] - add MD5 header with optional 16-byte data. all zero by default.
 * tcp_flags_set=<list> - set tcp flags in comma separated list
 * tcp_unflags_set=<list> - unset tcp flags in comma separated list
+* tcp_ts_up - move timestamp tcp option to the top if present (workaround for badack without badseq fooling)
 
 * fool - custom fooling function : fool_func(dis, fooling_options)
 
