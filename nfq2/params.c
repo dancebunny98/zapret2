@@ -381,9 +381,7 @@ void cleanup_params(struct params_s *params)
 #endif
 
 	ConntrackPoolDestroy(&params->conntrack);
-
 	dp_list_destroy(&params->desync_profiles);
-
 	hostlist_files_destroy(&params->hostlists);
 	ipset_files_destroy(&params->ipsets);
 	ipcacheDestroy(&params->ipcache);

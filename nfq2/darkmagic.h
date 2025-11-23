@@ -92,8 +92,11 @@ bool ip_has_df(const struct ip *ip);
 #ifdef __CYGWIN__
 extern uint32_t w_win32_error;
 
+bool win_irreversible_sandbox(void);
+bool win_irreversible_sandbox_if_possible(void);
 bool win_dark_init(const struct str_list_head *ssid_filter, const struct str_list_head *nlm_filter);
 bool win_dark_deinit(void);
+bool logical_net_filter_present(void);
 bool logical_net_filter_match(void);
 bool nlm_list(bool bAll);
 bool windivert_init(const char *filter);

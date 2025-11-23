@@ -3,6 +3,7 @@
 #include "lua.h"
 #include "params.h"
 #include "helpers.h"
+#include "conntrack.h"
 #include "crypto/sha.h"
 #include "crypto/aes-gcm.h"
 #include "crypto/aes-ctr.h"
@@ -2244,6 +2245,8 @@ void lua_shutdown()
 	if (params.L)
 	{
 		DLOG("LUA SHUTDOWN\n");
+		// conntrack holds lua state. must clear it before lua shoudown
+		ConntrackPoolDestroy(&params.conntrack);
 		lua_close(params.L);
 		params.L=NULL;
 	}

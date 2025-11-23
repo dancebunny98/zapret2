@@ -609,7 +609,7 @@ uint8_t ttl46(const struct ip *ip, const struct ip6_hdr *ip6)
 
 uint32_t w_win32_error=0;
 
-static BOOL RemoveTokenPrivs()
+static BOOL RemoveTokenPrivs(void)
 {
 	BOOL bRes = FALSE;
 	HANDLE hToken;
@@ -643,7 +643,32 @@ static BOOL RemoveTokenPrivs()
 	if (!bRes) w_win32_error = GetLastError();
 	return bRes;
 }
-static BOOL WinSandbox()
+
+static SID_IDENTIFIER_AUTHORITY label_authority = SECURITY_MANDATORY_LABEL_AUTHORITY;
+BOOL LowMandatoryLevel(void)
+{
+	BOOL bRes = FALSE;
+	HANDLE hToken;
+	char buf1[32];
+	TOKEN_MANDATORY_LABEL label_low;
+
+	label_low.Label.Sid = (PSID)buf1;
+	InitializeSid(label_low.Label.Sid, &label_authority, 1);
+	label_low.Label.Attributes = 0;
+	*GetSidSubAuthority(label_low.Label.Sid, 0) = SECURITY_MANDATORY_LOW_RID;
+
+	// S-1-16-12288 : Mandatory Label\High Mandatory Level
+	// S-1-16-8192  : Mandatory Label\Medium Mandatory Level
+	if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_DEFAULT, &hToken))
+	{
+		bRes = SetTokenInformation(hToken, TokenIntegrityLevel, &label_low, sizeof(label_low));
+		CloseHandle(hToken);
+	}
+	if (!bRes) w_win32_error = GetLastError();
+	return bRes;
+}
+
+static BOOL WinSandbox(void)
 {
 	// unfortunately there's no way to remove or disable Administrators group in the current process's token
 	// only possible run child process with restricted token
@@ -651,7 +676,22 @@ static BOOL WinSandbox()
 	// this is not much but better than nothing
 	return RemoveTokenPrivs();
 }
-
+bool win_irreversible_sandbox(void)
+{
+	// there's no way to return privs
+	return LowMandatoryLevel();
+}
+static bool b_isandbox_set = false;
+bool win_irreversible_sandbox_if_possible(void)
+{
+	if (!b_isandbox_set)
+	{
+		if (!logical_net_filter_present() && !win_irreversible_sandbox())
+			return false;
+		b_isandbox_set = true;
+	}
+	return true;
+}
 
 static HANDLE w_filter = NULL;
 static OVERLAPPED ovl = { .hEvent = NULL };
@@ -1004,6 +1044,13 @@ bool logical_net_filter_match(void)
 	return wlan_filter_match(wlan_filter_ssid) && nlm_filter_match(nlm_filter_net);
 }
 
+bool logical_net_filter_present(void)
+{
+	return (wlan_filter_ssid && !LIST_EMPTY(wlan_filter_ssid)) || (nlm_filter_net && !LIST_EMPTY(nlm_filter_net));
+}
+
+
+
 static bool logical_net_filter_match_rate_limited(void)
 {
 	DWORD dwTick = GetTickCount() / 1000;
@@ -1093,14 +1140,17 @@ static bool windivert_recv_filter(HANDLE hFilter, uint8_t *packet, size_t *len, 
 		return false;
 	}
 	usleep(0);
+
 	if (WinDivertRecvEx(hFilter, packet, *len, &recv_len, 0, wa, NULL, &ovl))
 	{
 		*len = recv_len;
 		return true;
 	}
+
 	for(;;)
 	{
 		w_win32_error = GetLastError();
+
 		switch(w_win32_error)
 		{
 			case ERROR_IO_PENDING:

@@ -631,7 +631,7 @@ static int win_main()
 			DLOG_CONDUP("logical network now present\n");
 		}
 
-		if (!windivert_init(params.windivert_filter))
+		if (!windivert_init(params.windivert_filter) || !win_irreversible_sandbox_if_possible())
 		{
 			res=w_win32_error; goto ex;
 		}
