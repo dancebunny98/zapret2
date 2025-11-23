@@ -2401,11 +2401,14 @@ int main(int argc, char **argv)
 	DLOG_CONDUP("we have %d user defined desync profile(s) and default low priority profile 0\n", desync_profile_count);
 
 #ifndef __CYGWIN__
-	if (params.debug_target == LOG_TARGET_FILE && params.droproot && chown(params.debug_logfile, params.uid, -1))
-		fprintf(stderr, "could not chown %s. log file may not be writable after privilege drop\n", params.debug_logfile);
-	if (params.droproot && *params.hostlist_auto_debuglog && chown(params.hostlist_auto_debuglog, params.uid, -1))
-		DLOG_ERR("could not chown %s. auto hostlist debug log may not be writable after privilege drop\n", params.hostlist_auto_debuglog);
+	if (params.droproot)
 #endif
+	{
+		if (params.debug_target == LOG_TARGET_FILE && !ensure_file_access(params.debug_logfile))
+			DLOG_ERR("could not make '%s' accessible. log file may not be writable after privilege drop\n", params.debug_logfile);
+		if (*params.hostlist_auto_debuglog && !ensure_file_access(params.hostlist_auto_debuglog))
+			DLOG_ERR("could not make '%s' accessible. auto hostlist debug log may not be writable after privilege drop\n", params.hostlist_auto_debuglog);
+	}
 	LIST_FOREACH(dpl, &params.desync_profiles, next)
 	{
 		dp = &dpl->dp;
@@ -2417,9 +2420,13 @@ int main(int argc, char **argv)
 		}
 
 #ifndef __CYGWIN__
-		if (params.droproot && dp->hostlist_auto && chown(dp->hostlist_auto->filename, params.uid, -1))
-			DLOG_ERR("could not chown %s. auto hostlist file may not be writable after privilege drop\n", dp->hostlist_auto->filename);
+		if (params.droproot)
 #endif
+		{
+			if (dp->hostlist_auto && ensure_file_access(dp->hostlist_auto->filename))
+				DLOG_ERR("could not chown %s. auto hostlist file may not be writable after privilege drop\n", dp->hostlist_auto->filename);
+
+		}
 		LuaDesyncDebug(dp);
 	}
 

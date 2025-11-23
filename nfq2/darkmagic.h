@@ -89,6 +89,9 @@ bool tcp_has_fastopen(const struct tcphdr *tcp);
 
 bool ip_has_df(const struct ip *ip);
 
+
+bool ensure_file_access(const char *filename);
+
 #ifdef __CYGWIN__
 extern uint32_t w_win32_error;
 

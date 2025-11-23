@@ -22,6 +22,7 @@
 #ifdef __CYGWIN__
 #include <wlanapi.h>
 #include <netlistmgr.h>
+#include <aclapi.h>
 
 #ifndef ERROR_INVALID_IMAGE_HASH
 #define ERROR_INVALID_IMAGE_HASH __MSABI_LONG(577)
@@ -676,6 +677,36 @@ static BOOL WinSandbox(void)
 	// this is not much but better than nothing
 	return RemoveTokenPrivs();
 }
+
+BOOL SetMandatoryLabelFile(LPCSTR lpFileName, DWORD dwMandatoryLabelRID)
+{
+	BOOL bRes=FALSE;
+	DWORD dwErr, dwFileAttributes;
+	char buf_label[16], buf_pacl[32];
+	PSID label = (PSID)buf_label;
+	PACL pacl = (PACL)buf_pacl;
+
+	dwFileAttributes = GetFileAttributesA(lpFileName);
+	if (dwFileAttributes == INVALID_FILE_ATTRIBUTES)
+		return FALSE;
+
+	InitializeSid(label, &label_authority, 1);
+	*GetSidSubAuthority(label, 0) = dwMandatoryLabelRID;
+	if (InitializeAcl(pacl, sizeof(buf_pacl), ACL_REVISION) && AddMandatoryAce(pacl, (dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? ACL_REVISION_DS : ACL_REVISION, 0, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP, label))
+	{
+		dwErr = SetNamedSecurityInfoA((LPSTR)lpFileName, SE_FILE_OBJECT, LABEL_SECURITY_INFORMATION, NULL, NULL, NULL, pacl);
+		SetLastError(dwErr);
+		bRes = dwErr==ERROR_SUCCESS;
+	}
+	if (!bRes) w_win32_error = GetLastError();
+	return bRes;
+}
+
+bool ensure_file_access(const char *filename)
+{
+	return SetMandatoryLabelFile(filename, SECURITY_MANDATORY_LOW_RID);
+}
+
 bool win_irreversible_sandbox(void)
 {
 	// there's no way to return privs
@@ -692,6 +723,8 @@ bool win_irreversible_sandbox_if_possible(void)
 	}
 	return true;
 }
+
+
 
 static HANDLE w_filter = NULL;
 static OVERLAPPED ovl = { .hEvent = NULL };
@@ -1228,6 +1261,11 @@ bool rawsend(const struct sockaddr* dst,uint32_t fwmark,const char *ifout,const 
 }
 
 #else // *nix
+
+bool ensure_file_access(const char *filename)
+{
+	return !chown(filename, params.uid, -1);
+}
 
 static int rawsend_sock4=-1, rawsend_sock6=-1;
 static bool b_bind_fix4=false, b_bind_fix6=false;
