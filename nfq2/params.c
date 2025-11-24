@@ -88,21 +88,21 @@ const uint8_t fake_tls_clienthello_default[680] = {
 
 const char * tld[6] = { "com","org","net","edu","gov","biz" };
 
-int DLOG_FILE(FILE *F, const char *format, va_list args)
+int DLOG_FILE_VA(FILE *F, const char *format, va_list args)
 {
 	return vfprintf(F, format, args);
 }
-int DLOG_CON(const char *format, int syslog_priority, va_list args)
+int DLOG_CON_VA(const char *format, int syslog_priority, va_list args)
 {
-	return DLOG_FILE(syslog_priority==LOG_ERR ? stderr : stdout, format, args);
+	return DLOG_FILE_VA(syslog_priority==LOG_ERR ? stderr : stdout, format, args);
 }
-int DLOG_FILENAME(const char *filename, const char *format, va_list args)
+int DLOG_FILENAME_VA(const char *filename, const char *format, va_list args)
 {
 	int r;
 	FILE *F = fopen(filename,"at");
 	if (F)
 	{
-		r = DLOG_FILE(F, format, args);
+		r = DLOG_FILE_VA(F, format, args);
 		fclose(F);
 	}
 	else
@@ -118,6 +118,21 @@ static void syslog_log_function(int priority, const char *line)
 {
 	syslog(priority,"%s",log_buf);
 }
+
+static int DLOG_FILENAME(const char *filename, const char *format, ...)
+{
+	int r;
+	va_list args;
+	va_start(args, format);
+	r = DLOG_FILENAME_VA(filename, format, args);
+	va_end(args);
+	return r;
+}
+static void file_log_function(int priority, const char *line)
+{
+	DLOG_FILENAME(params.debug_logfile,"%s",log_buf);
+}
+
 #ifdef __ANDROID__
 static enum android_LogPriority syslog_priority_to_android(int priority)
 {
@@ -163,7 +178,7 @@ static int DLOG_VA(const char *format, int syslog_priority, bool condup, va_list
 	if (condup && !(params.debug && params.debug_target==LOG_TARGET_CONSOLE))
 	{
 		va_copy(args2,args);
-		DLOG_CON(format,syslog_priority,args2);
+		DLOG_CON_VA(format,syslog_priority,args2);
 		va_end(args2);
 	}
 	if (params.debug)
@@ -171,10 +186,11 @@ static int DLOG_VA(const char *format, int syslog_priority, bool condup, va_list
 		switch(params.debug_target)
 		{
 			case LOG_TARGET_CONSOLE:
-				r = DLOG_CON(format,syslog_priority,args);
+				r = DLOG_CON_VA(format,syslog_priority,args);
 				break;
 			case LOG_TARGET_FILE:
-				r = DLOG_FILENAME(params.debug_logfile,format,args);
+				log_buffered(file_log_function,syslog_priority,format,args);
+				r = 1;
 				break;
 			case LOG_TARGET_SYSLOG:
 				// skip newlines
@@ -271,10 +287,39 @@ void hexdump_limited_dlog(const uint8_t *data, size_t size, size_t limit)
 		bcut = true;
 	}
 	if (!size) return;
-	for (k = 0; k < size; k++) DLOG("%02X ", data[k]);
-	DLOG(bcut ? "... : " : ": ");
-	for (k = 0; k < size; k++) DLOG("%c", data[k] >= 0x20 && data[k] <= 0x7F ? (char)data[k] : '.');
-	if (bcut) DLOG(" ...");
+
+	char *p, *buf = malloc(size*4 + 16);
+	if (buf)
+	{
+		p=buf;
+		for (k = 0; k < size; k++)
+		{
+			*p++ = hex_digit(data[k] >> 4);
+			*p++ = hex_digit(data[k] & 0xF);
+			*p++ = ' ';
+		}
+		if (bcut)
+		{
+			*p++='.';
+			*p++='.';
+			*p++='.';
+			*p++=' ';
+		}
+		*p++=':';
+		*p++=' ';
+		for (k = 0; k < size; k++)
+			*p++ = data[k] >= 0x20 && data[k] <= 0x7F ? (char)data[k] : '.';
+		if (bcut)
+		{
+			*p++=' ';
+			*p++='.';
+			*p++='.';
+			*p++='.';
+		}
+		*p = 0;
+		DLOG("%s", buf);
+		free(buf);
+	}
 }
 
 void dp_init(struct desync_profile *dp)
