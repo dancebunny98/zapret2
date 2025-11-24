@@ -692,7 +692,7 @@ BOOL SetMandatoryLabelFile(LPCSTR lpFileName, DWORD dwMandatoryLabelRID)
 	if (!(lpFileNameW = (LPWSTR)LocalAlloc(LMEM_FIXED,(szFileName+1)*sizeof(WCHAR))))
 		return FALSE;
 
-	if (!MultiByteToWideChar(CP_UTF8, 0, lpFileName, -1, lpFileNameW, szFileName))
+	if (!MultiByteToWideChar(CP_UTF8, 0, lpFileName, -1, lpFileNameW, szFileName+1))
 	{
 		LocalFree(lpFileNameW);
 		return FALSE;
