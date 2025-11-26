@@ -4,10 +4,13 @@ function pcap(ctx, desync)
 	if not desync.arg.file or #desync.arg.file==0 then
 		error("pcap requires 'file' parameter")
 	end
-	local fn = writeable_file_name(desync.arg.file)
-	local f = io.open(fn, "a")
+	local fn_cache_name = desync.func_instance.."_fn"
+	if not _G[fn_cache_name] then
+		_G[fn_cache_name] = writeable_file_name(desync.arg.file)
+	end
+	local f = io.open(_G[fn_cache_name], "a")
 	if not f then
-		error("pcap: could not write to '"..fn.."'")
+		error("pcap: could not write to '".._G[fn_cache_name].."'")
 	end
 	local pos = f:seek()
 	if (pos==0) then
