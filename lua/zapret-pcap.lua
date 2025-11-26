@@ -1,4 +1,4 @@
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-pcap.lua:file=test.pcap --writeable=zdir
+-- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-pcap.lua --writeable=zdir --in-range=a --lua-desync=pcap:file=test.pcap
 -- arg : file=<filename> - file for storing pcap data. if --writeable is specified and filename is relative - append filename to writeable path
 function pcap(ctx, desync)
 	if not desync.arg.file or #desync.arg.file==0 then
