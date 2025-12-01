@@ -31,7 +31,7 @@ endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	$(CP) ./nfq/* $(PKG_BUILD_DIR)/
+	$(CP) ./nfq2/* $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
@@ -39,8 +39,8 @@ define Build/Compile
 endef
 
 define Package/nfqws2/install
-	$(INSTALL_DIR) $(1)/opt/zapret/binaries/my
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/nfqws2 $(1)/opt/zapret/binaries/my
+	$(INSTALL_DIR) $(1)/opt/zapret2/binaries/my
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/nfqws2 $(1)/opt/zapret2/binaries/my
 endef
 
 $(eval $(call BuildPackage,nfqws2))
