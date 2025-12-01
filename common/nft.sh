@@ -102,7 +102,7 @@ nft_activate_chain4()
 		b=0
 		nft_wanif_filter_present && b=1
 
-		rule="meta mark and $DESYNC_MARK == 0"
+		rule="meta mark and $DESYNC_MARK == 0 $(nft_mark_filter)"
 		[ $b = 1 ] && rule="$rule oifname @wanif"
 		rule="$rule ip $2 != @nozapret jump $1"
 		nft_rule_exists ${1}_hook "$rule" || nft_add_rule ${1}_hook $rule
@@ -117,7 +117,7 @@ nft_activate_chain6()
 		b=0
 		nft_wanif6_filter_present && b=1
 
-		rule="meta mark and $DESYNC_MARK == 0"
+		rule="meta mark and $DESYNC_MARK == 0 $(nft_mark_filter)"
 		[ $b = 1 ] && rule="$rule oifname @wanif6"
 		rule="$rule ip6 $2 != @nozapret6 jump $1"
 		nft_rule_exists ${1}_hook "$rule" || nft_add_rule ${1}_hook $rule
@@ -467,7 +467,7 @@ _nft_fw_nfqws_post4()
 	[ "$DISABLE_IPV4" = "1" -o -z "$1" ] || {
 		local filter="$1" port="$2" rule chain=$(get_postchain) setmark
 		nft_print_op "$filter" "nfqws postrouting (qnum $port)" 4
-		rule="meta nfproto ipv4 $(nft_mark_filter) $filter"
+		rule="meta nfproto ipv4 $filter"
 		is_postnat && setmark="meta mark set meta mark or $DESYNC_MARK_POSTNAT"
 		nft_insert_rule $chain $rule $setmark $CONNMARKER $FW_EXTRA_POST queue num $port bypass
 		nft_add_nfqws_flow_exempt_rule "$rule"
@@ -483,7 +483,7 @@ _nft_fw_nfqws_post6()
 	[ "$DISABLE_IPV6" = "1" -o -z "$1" ] || {
 		local filter="$1" port="$2" rule chain=$(get_postchain) setmark
 		nft_print_op "$filter" "nfqws postrouting (qnum $port)" 6
-		rule="meta nfproto ipv6 $(nft_mark_filter) $filter"
+		rule="meta nfproto ipv6 $filter"
 		is_postnat && setmark="meta mark set meta mark or $DESYNC_MARK_POSTNAT"
 		nft_insert_rule $chain $rule $setmark $CONNMARKER $FW_EXTRA_POST queue num $port bypass
 		nft_add_nfqws_flow_exempt_rule "$rule"
