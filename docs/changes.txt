@@ -34,3 +34,6 @@ v0.2
 * zapret-lib: bugfixes
 * zapret-lib: remove ip6_hopbyhop_x2 fooling, separately add second hopbyhop header using ip6_hopbyhop2
 * zapret-pcap
+
+v0.3
+* init.d launch scripts
