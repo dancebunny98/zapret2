@@ -66,6 +66,35 @@ bool l7_payload_match(t_l7payload l7payload, uint64_t filter_l7p)
 {
 	return filter_l7p==L7P_ALL || (filter_l7p & (1<<l7payload)) || (filter_l7p & (1<<L7P_KNOWN)) && l7payload>L7P_KNOWN && l7payload<L7P_LAST;
 }
+bool l7_payload_str_list(uint64_t l7p, char *buf, size_t size)
+{
+	char *p;
+	const char *pstr;
+	size_t lstr;
+	t_l7payload pl;
+
+	if (!size) return false;
+	if (l7p==L7P_ALL)
+	{
+		if (size<4) return false;
+		memcpy(buf,"all",4);
+		return true;
+	}
+	for(pl=0, p=buf, *buf=0 ; pl<L7P_LAST ; pl++)
+	{
+		if (l7p & (1<<pl))
+		{
+			pstr = l7payload_str(pl);
+			lstr = strlen(pstr);
+			if (size < ((p!=buf) + lstr + 1)) return false;
+			if (p!=buf) *p++=','; // not first
+			memcpy(p,pstr,lstr);
+			p[lstr]=0;
+			p+=lstr;
+		}
+	}
+	return true;
+}
 
 
 static const char *posmarker_names[] = {"abs","host","endhost","sld","midsld","endsld","method","extlen","sniext"};

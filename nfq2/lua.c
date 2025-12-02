@@ -761,19 +761,27 @@ static int luacall_execution_plan(lua_State *L)
 	lua_newtable(L);
 
 	struct func_list *func;
-	char instance[256];
+	char instance[256], pls[2048];
+	struct packet_range *range;
 	unsigned int n=1;
 	LIST_FOREACH(func, &ctx->dp->lua_desync, next)
 	{
 		if (n > ctx->func_n)
 		{
 			desync_instance(func->func, ctx->dp->n, n, instance, sizeof(instance));
+			range = ctx->incoming ? &func->range_in : &func->range_out;
 			lua_pushinteger(params.L, n - ctx->func_n);
-			lua_createtable(params.L, 0, 4);
+			lua_createtable(params.L, 0, 6);
+			lua_pushf_args(&func->args, -1);
 			lua_pushf_str("func", func->func);
 			lua_pushf_int("func_n", ctx->func_n);
 			lua_pushf_str("func_instance", instance);
-			lua_pushf_args(&func->args, -1);
+			lua_pushf_range("range", range);
+			if (l7_payload_str_list(func->payload_type, pls, sizeof(pls)))
+				lua_pushf_str("payload_filter", pls);
+			else
+				lua_pushf_nil("payload_filter");
+
 			lua_rawset(params.L,-3);
 		}
 		n++;
@@ -1253,7 +1261,33 @@ void lua_pushf_args(const struct ptr_list_head *args, int idx_desync)
 
 	LUA_STACK_GUARD_LEAVE(params.L, 0)
 }
+void lua_pushf_pos(const char *name, const struct packet_pos *pos)
+{
+	LUA_STACK_GUARD_ENTER(params.L)
 
+	char smode[2]="?";
+	lua_pushf_table(name);
+	lua_getfield(params.L,-1,name);
+	*smode=pos->mode;
+	lua_pushf_str("mode",smode);
+	lua_pushf_int("pos",pos->pos);
+	lua_pop(params.L,1);
+
+	LUA_STACK_GUARD_LEAVE(params.L, 0)
+}
+void lua_pushf_range(const char *name, const struct packet_range *range)
+{
+	LUA_STACK_GUARD_ENTER(params.L)
+
+	lua_pushf_table(name);
+	lua_getfield(params.L,-1,"range");
+	lua_pushf_bool("upper_cutoff",range->upper_cutoff);
+	lua_pushf_pos("from", &range->from);
+	lua_pushf_pos("to", &range->to);
+	lua_pop(params.L,1);
+
+	LUA_STACK_GUARD_LEAVE(params.L, 0)
+}
 
 
 static void lua_reconstruct_extract_options(lua_State *L, int idx, bool *badsum, bool *ip6_preserve_next, uint8_t *ip6_last_proto)

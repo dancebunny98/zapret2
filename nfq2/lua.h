@@ -73,6 +73,8 @@ void lua_push_dissect(const struct dissect *dis);
 void lua_pushf_dissect(const struct dissect *dis);
 void lua_pushf_ctrack(const t_ctrack *ctrack);
 void lua_pushf_args(const struct ptr_list_head *args, int idx_desync);
+void lua_pushf_pos(const char *name, const struct packet_pos *pos);
+void lua_pushf_range(const char *name, const struct packet_range *range);
 void lua_pushf_global(const char *field, const char *global);
 
 bool lua_reconstruct_ip6hdr(int idx, struct ip6_hdr *ip6, size_t *len, uint8_t last_proto, bool preserve_next);
@@ -87,7 +89,7 @@ typedef struct {
 	const struct desync_profile *dp;
 	const struct dissect *dis;
 	t_ctrack *ctrack;
-	bool cancel;
+	bool incoming,cancel;
 } t_lua_desync_context;
 
 bool lua_instance_cutoff_check(const t_lua_desync_context *ctx, bool bIn);

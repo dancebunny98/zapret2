@@ -55,6 +55,7 @@ typedef enum {
 t_l7payload l7payload_from_name(const char *name);
 const char *l7payload_str(t_l7payload l7);
 bool l7_payload_match(t_l7payload l7payload, uint64_t filter_l7p);
+bool l7_payload_str_list(uint64_t l7p, char *buf, size_t size);
 
 typedef enum {
 	PM_ABS=0,

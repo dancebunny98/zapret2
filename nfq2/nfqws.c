@@ -1683,6 +1683,7 @@ int main(int argc, char **argv)
 {
 	if (argc < 2) exithelp();
 
+
 	aes_init_keygen_tables(); // required for aes
 	set_console_io_buffering();
 	set_env_exedir(argv[0]);

@@ -54,12 +54,72 @@ function desync_orchestrator_example(ctx, desync)
 		local desync_copy = deepcopy(desync)
 		execution_plan_cancel(ctx)
 		for i=1,#plan do
-			apply_execution_plan(desync_copy, plan[i])
-			DLOG("orchestrator: executing '"..desync_copy.func_instance.."'")
-			_G[plan[i].func](ctx, desync_copy)
+			if not payload_match_filter(desync.l7payload, plan[i].payload_filter) then
+				DLOG("orchestrator: not calling '"..desync_copy.func_instance.."' because payload '"..desync.l7payload.."' does not match filter '"..plan[i].payload_filter.."'")
+			elseif not pos_check_range(desync, plan[i].range) then
+				DLOG("orchestrator: not calling '"..desync_copy.func_instance.."' because pos "..pos_str(desync,plan[i].range.from).." "..pos_str(desync,plan[i].range.to).." is out of range '"..pos_range_str(plan[i].range).."'")
+			else
+				apply_execution_plan(desync_copy, plan[i])
+				DLOG("orchestrator: executing '"..desync_copy.func_instance.."'")
+				_G[plan[i].func](ctx, desync_copy)
+			end
 		end
 	end
 end
+
+-- these function duplicate range check logic from C code
+-- mode must be n,d,b,s,x,a
+-- pos is {mode,pos}
+-- range is {from={mode,pos}, to={mode,pos}, upper_cutoff}
+-- upper_cutoff = true means non-inclusive upper boundary
+function pos_get(desync, mode)
+	if desync.track then
+		if mode=='n' then
+			return desync.outgoing and desync.track.pcounter_orig or desync.track.pcounter_reply
+		elseif mode=='d' then
+			return desync.outgoing and desync.track.pdcounter_orig or desync.track.pdcounter_reply
+		elseif mode=='b' then
+			return desync.outgoing and desync.track.pbcounter_orig or desync.track.pbcounter_reply
+		elseif mode=='s' and desync.track.tcp then
+			return desync.outgoing and (desync.track.tcp.seq - desync.track.tcp.seq0) or (desync.track.tcp.ack - desync.track.tcp.ack0)
+		end
+	end
+	return 0
+end
+function pos_check_from(desync, range)
+	if range.from.mode == 'x' then return false end
+	if range.from.mode ~= 'a' then
+		if desync.track then
+			return pos_get(desync, range.from.mode) >= range.from.pos
+		else
+			return false
+		end
+	end
+	return true;
+end
+function pos_check_to(desync, range)
+	local ps
+	if range.to.mode == 'x' then return false end
+	if range.to.mode ~= 'a' then
+		if desync.track then
+			ps = pos_get(desync, range.to.mode)
+			return (ps < range.to.pos) or not range.upper_cutoff and (ps == range.to.pos)
+		else
+			return false
+		end
+	end
+	return true;
+end
+function pos_check_range(desync, range)
+	return pos_check_from(desync,range) and pos_check_to(desync,range)
+end
+function pos_range_str(range)
+	return range.from.mode..range.from.pos..(range.upper_cutoff and '<' or '-')..range.to.mode..range.to.pos
+end
+function pos_str(desync, pos)
+	return pos.mode..pos_get(desync, pos.mode)
+end
+
 
 -- prepare standard rawsend options from desync
 -- repeats - how many time send the packet
@@ -825,17 +885,21 @@ function direction_cutoff_opposite(ctx, desync, def)
 		instance_cutoff(ctx, true)
 	end
 end
+
+-- return true if l7payload matches filter l7payload_filter - comma separated list of payload types
+function payload_match_filter(l7payload, l7payload_filter, def)
+	local argpl = l7payload_filter or def or "known"
+	local neg = string.sub(argpl,1,1)=="~"
+	local pl = neg and string.sub(argpl,2) or argpl
+	return neg ~= (in_list(pl, "all") or in_list(pl, l7payload) or in_list(pl, "known") and l7payload~="unknown" and l7payload~="empty")
+end
 -- check if desync payload type comply with payload type list in arg.payload
 -- if arg.payload is not present - check for known payload - not empty and not unknown (nfqws1 behavior without "--desync-any-protocol" option)
 -- if arg.payload is prefixed with '~' - it means negation
 function payload_check(desync, def)
-	local b
-	local argpl = desync.arg.payload or def or "known"
-	local neg = string.sub(argpl,1,1)=="~"
-	local pl = neg and string.sub(argpl,2) or argpl
-
-	b = neg ~= (in_list(pl, "all") or in_list(pl, desync.l7payload) or in_list(pl, "known") and desync.l7payload~="unknown" and desync.l7payload~="empty")
-	if not b then
+	local b = payload_match_filter(desync.l7payload, desync.arg.payload, def)
+	if not b and b_debug then
+		local argpl = desync.arg.payload or def or "known"
 		DLOG("payload_check: payload '"..desync.l7payload.."' does not pass '"..argpl.."' filter")
 	end
 	return b
