@@ -97,8 +97,11 @@ nft_activate_chain4()
 {
 	# $1 - chain name
 	# $2 - saddr/daddr
-	local b rule markf=
+	local b rule markf= act
 	[ "$DISABLE_IPV4" = "1" ] || {
+		eval act="\$${1}_act4"
+		[ -n "$act" ] && return
+
 		b=0
 		nft_wanif_filter_present && b=1
 
@@ -107,6 +110,8 @@ nft_activate_chain4()
 		[ $b = 1 ] && rule="$rule oifname @wanif"
 		rule="$rule ip $2 != @nozapret jump $1"
 		nft_rule_exists ${1}_hook "$rule" || nft_add_rule ${1}_hook $rule
+
+		eval ${1}_act4=1
 	}
 }
 nft_activate_chain6()
@@ -115,6 +120,9 @@ nft_activate_chain6()
 	# $2 - saddr/daddr
 	local b rule markf=
 	[ "$DISABLE_IPV6" = "1" ] || {
+		eval act="\$${1}_act6"
+		[ -n "$act" ] && return
+
 		b=0
 		nft_wanif6_filter_present && b=1
 
@@ -123,6 +131,8 @@ nft_activate_chain6()
 		[ $b = 1 ] && rule="$rule oifname @wanif6"
 		rule="$rule ip6 $2 != @nozapret6 jump $1"
 		nft_rule_exists ${1}_hook "$rule" || nft_add_rule ${1}_hook $rule
+
+		eval ${1}_act6=1
 	}
 }
 
