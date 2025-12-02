@@ -44,7 +44,7 @@ function apply_execution_plan(desync, plan)
 	desync.func_instance = plan.func_instance
 	desync.arg = plan.arg
 end
--- redo what whould be done without orcestration
+-- redo what whould be done without orchestration
 function replay_execution_plan(desync, plan)
 	for i=1,#plan do
 		if not payload_match_filter(desync.l7payload, plan[i].payload_filter) then
