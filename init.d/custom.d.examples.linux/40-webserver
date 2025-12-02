@@ -22,7 +22,7 @@ zapret_custom_daemons()
 }
 zapret_custom_firewall()
 {
-        # $1 - 1 - run, 0 - stop
+	# $1 - 1 - run, 0 - stop
 
 	local PORTS=$(replace_char - : $WEBSERVER_PORTS)
 	local first_packets=$(ipt_first_packets $WEBSERVER_PKT_OUT)
@@ -31,7 +31,7 @@ zapret_custom_firewall()
 }
 zapret_custom_firewall_nft()
 {
-        # stop logic is not required
+	# stop logic is not required
 
 	local first_packets=$(nft_first_packets $WEBSERVER_PKT_OUT)
 	local f="tcp sport {$WEBSERVER_PORTS} $first_packets"
