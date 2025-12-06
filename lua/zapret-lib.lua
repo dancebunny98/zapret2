@@ -1196,5 +1196,3 @@ function ipfrag2(dis, ipfrag_options)
 
 	return {dis1,dis2}
 end
-
-print(bitor(-4,-2))
