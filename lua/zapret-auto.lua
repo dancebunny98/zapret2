@@ -145,7 +145,6 @@ function circular(ctx, desync)
 	local retrans = tonumber(desync.arg.retrans) or 3
 	local maxtime = tonumber(desync.arg.time) or 60
 	local crec = automate_conn_record(desync)
-	local pos = bitand(desync.track.tcp.seq - desync.track.tcp.seq0,0xFFFFFFFF)
 	local trigger = false
 
 	if not hrec.nstrategy then
