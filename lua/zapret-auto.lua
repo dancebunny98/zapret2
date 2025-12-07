@@ -171,7 +171,7 @@ function circular(ctx, desync)
 	execution_plan_cancel(ctx)
 
 	if not desync.dis.tcp then
-		DLOG("circular: this orchestrator is tcp only")
+		DLOG_ERR("circular: this orchestrator is tcp only. use filters to avoid udp traffic.")
 		instance_cutoff(ctx)
 		return
 	end
@@ -236,17 +236,7 @@ function circular(ctx, desync)
 	local dcopy = desync_copy(desync)
 	for i=1,#plan do
 		if plan[i].arg.strategy and tonumber(plan[i].arg.strategy)==hrec.nstrategy then
-			apply_execution_plan(dcopy, plan[i])
-			if cutoff_shim_check(dcopy) then
-				DLOG("circular: not calling '"..dcopy.func_instance.."' because of voluntary cutoff")
-			elseif not payload_match_filter(dcopy.l7payload, plan[i].payload_filter) then
-				DLOG("circular: not calling '"..dcopy.func_instance.."' because payload '"..dcopy.l7payload.."' does not match filter '"..plan[i].payload_filter.."'")
-			elseif not pos_check_range(dcopy, plan[i].range) then
-				DLOG("circular: not calling '"..dcopy.func_instance.."' because pos "..pos_str(dcopy,plan[i].range.from).." "..pos_str(dcopy,plan[i].range.to).." is out of range '"..pos_range_str(plan[i].range).."'")
-			else
-				DLOG("circular: calling '"..dcopy.func_instance.."'")
-				verdict = verdict_aggregate(verdict,_G[plan[i].func](nil, dcopy))
-			end
+			verdict = plan_instance_execute(dcopy, verdict, plan[i])
 		end
 	end
 

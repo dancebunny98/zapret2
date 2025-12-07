@@ -118,11 +118,11 @@ function apply_arg_prefix(arg)
 	end
 end
 -- copy instance identification and args from execution plan to desync table
-function apply_execution_plan(desync, plan)
-	desync.func = plan.func
-	desync.func_n = plan.func_n
-	desync.func_instance = plan.func_instance
-	desync.arg = deepcopy(plan.arg)
+function apply_execution_plan(desync, instance)
+	desync.func = instance.func
+	desync.func_n = instance.func_n
+	desync.func_instance = instance.func_instance
+	desync.arg = deepcopy(instance.arg)
 	apply_arg_prefix(desync.arg)
 end
 -- produce resulting verdict from 2 verdicts
@@ -139,21 +139,26 @@ function verdict_aggregate(v1, v2)
 	end
 	return v
 end
+function plan_instance_execute(desync, verdict, instance)
+	apply_execution_plan(desync, instance)
+	if cutoff_shim_check(desync) then
+		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because of voluntary cutoff")
+	elseif not payload_match_filter(desync.l7payload, instance.payload_filter) then
+		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because payload '"..desync.l7payload.."' does not match filter '"..instance.payload_filter.."'")
+	elseif not pos_check_range(desync, instance.range) then
+		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because pos "..pos_str(desync,instance.range.from).." "..pos_str(desync,instance.range.to).." is out of range '"..pos_range_str(instance.range).."'")
+	else
+		DLOG("plan_instance_execute: calling '"..desync.func_instance.."'")
+		verdict = verdict_aggregate(verdict,_G[instance.func](nil, desync))
+	end
+	return verdict
+end
+
 -- redo what whould be done without orchestration
 function replay_execution_plan(desync, plan)
 	local verdict = VERDICT_PASS
 	for i=1,#plan do
-		if cutoff_shim_check(desync) then
-			DLOG("orchestrator: not calling '"..desync.func_instance.."' because of voluntary cutoff")
-		elseif not payload_match_filter(desync.l7payload, plan[i].payload_filter) then
-			DLOG("orchestrator: not calling '"..desync.func_instance.."' because payload '"..desync.l7payload.."' does not match filter '"..plan[i].payload_filter.."'")
-		elseif not pos_check_range(desync, plan[i].range) then
-			DLOG("orchestrator: not calling '"..desync.func_instance.."' because pos "..pos_str(desync,plan[i].range.from).." "..pos_str(desync,plan[i].range.to).." is out of range '"..pos_range_str(plan[i].range).."'")
-		else
-			apply_execution_plan(desync, plan[i])
-			DLOG("orchestrator: calling '"..desync.func_instance.."'")
-			verdict = verdict_aggregate(verdict,_G[plan[i].func](nil, desync))
-		end
+		verdict = plan_instance_execute(desync, verdict, plan[i])
 	end
 	return verdict
 end
