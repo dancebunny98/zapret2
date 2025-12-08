@@ -396,15 +396,20 @@ bool ReasmResize(t_reassemble *reasm, size_t new_size)
 }
 bool ReasmFeed(t_reassemble *reasm, uint32_t seq, const void *payload, size_t len)
 {
-	if (reasm->seq != seq) return false; // fail session if out of sequence
+	uint32_t neg_overlap = reasm->seq - seq;
+	if ((seq > reasm->seq) || (neg_overlap > reasm->size_present))
+		return false; // fail session if a gap about to appear or negative overlap is beyond start position
 
 	size_t szcopy;
 	szcopy = reasm->size - reasm->size_present;
 	if (len < szcopy) szcopy = len;
-	memcpy(reasm->packet + reasm->size_present, payload, szcopy);
-	reasm->size_present += szcopy;
-	reasm->seq += (uint32_t)szcopy;
-
+	// in case of seq overlap new data replaces old - unix behavior
+	memcpy(reasm->packet + reasm->size_present - neg_overlap, payload, szcopy);
+	if (szcopy>neg_overlap)
+	{
+		reasm->size_present += szcopy - neg_overlap;
+		reasm->seq += (uint32_t)szcopy - neg_overlap;
+	}
 	return true;
 }
 bool ReasmHasSpace(t_reassemble *reasm, size_t len)
