@@ -78,3 +78,4 @@ v0.6
 v0.6.1
 
 * zapret-lib, zapret-auto: condition and stopif orchestrators
+* zapret-lib: detect_payload_str - sample lua payload detector

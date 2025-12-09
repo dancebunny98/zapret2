@@ -61,6 +61,30 @@ function posdebug(ctx,desync)
 	DLOG(s)
 end
 
+-- basic desync function
+-- set l7payload to 'arg.payload' if reasm.data or desync.dis.payload contains 'arg.pattern' substring
+-- NOTE : this does not set payload on C code side !
+-- NOTE : C code will not see payload change. --payload args take only payloads known to C code and cause error if unknown.
+-- arg: pattern - substring for search inside reasm_data or desync.dis.payload
+-- arg: payload - set desync.l7payload to this if detected
+-- arg: undetected - set desync.l7payload to this if not detected
+-- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-antidpi.lua --lua-init=@zapret-auto.lua --lua-desync=detect_payload_str:pattern=1234:payload=my --lua-desync=fake:blob=0x1234:payload=my
+function detect_payload_str(ctx, desync)
+	if not desync.arg.pattern then
+		error("detect_payload_str: missing 'pattern'")
+	end
+	local data = desync.reasm_data or desync.dis.payload
+	local b = string.find(data,desync.arg.pattern,1,true)
+	if b then
+		DLOG("detect_payload_str: detected '"..desync.arg.payload.."'")
+		if desync.arg.payload then desync.l7payload = desync.arg.payload end
+	else
+		DLOG("detect_payload_str: not detected '"..desync.arg.payload.."'")
+		if desync.arg.undetected then desync.l7payload = desync.arg.undetected end
+	end
+end
+
+
 -- this shim is needed then function is orchestrated. ctx services not available
 -- have to emulate cutoff in LUA using connection persistent table track.lua_state
 function instance_cutoff_shim(ctx, desync, dir)
