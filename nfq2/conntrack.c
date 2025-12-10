@@ -103,7 +103,6 @@ static void ConntrackInitTrack(t_ctrack *t)
 	memset(t, 0, sizeof(*t));
 	t->l7proto = L7_UNKNOWN;
 	t->pos.client.scale = t->pos.server.scale = SCALE_NONE;
-	time(&t->t_start);
 	rawpacket_queue_init(&t->delayed);
 	lua_newtable(params.L);
 	t->lua_state = luaL_ref(params.L, LUA_REGISTRYINDEX);
@@ -222,8 +221,9 @@ static void ConntrackFeedPacket(t_ctrack *t, bool bReverse, const struct tcphdr 
 			t->pos.client.pos += len_payload;
 		}
 	}
-
-	time(&t->pos.t_last);
+	clock_gettime(CLOCK_REALTIME, &t->pos.t_last);
+	// make sure t_start gets exactly the same value as first t_last
+	if (!t->t_start.tv_sec) t->t_start = t->pos.t_last;
 }
 
 static bool ConntrackPoolDoubleSearchPool(t_conntrack_pool **pp, const struct ip *ip, const struct ip6_hdr *ip6, const struct tcphdr *tcphdr, const struct udphdr *udphdr, t_ctrack **ctrack, bool *bReverse)
@@ -319,13 +319,15 @@ bool ConntrackPoolDrop(t_conntrack *p, const struct ip *ip, const struct ip6_hdr
 
 void ConntrackPoolPurge(t_conntrack *p)
 {
-	time_t tidle, tnow = time(NULL);
+	time_t tidle;
+	struct timespec tnow;
 	t_conntrack_pool *t, *tmp;
 
-	if ((tnow - p->t_last_purge) >= p->t_purge_interval)
+	if (!clock_gettime(CLOCK_REALTIME, &tnow)) return;
+	if ((tnow.tv_sec - p->t_last_purge) >= p->t_purge_interval)
 	{
 		HASH_ITER(hh, p->pool, t, tmp) {
-			tidle = tnow - t->track.pos.t_last;
+			tidle = tnow.tv_sec - t->track.pos.t_last.tv_sec;
 			if (t->track.b_cutoff ||
 				(t->conn.l4proto == IPPROTO_TCP && (
 				(t->track.pos.state == SYN && tidle >= p->timeout_syn) ||
@@ -337,7 +339,7 @@ void ConntrackPoolPurge(t_conntrack *p)
 				HASH_DEL(p->pool, t); ConntrackFreeElem(t);
 			}
 		}
-		p->t_last_purge = tnow;
+		p->t_last_purge = tnow.tv_sec;
 	}
 }
 
@@ -349,8 +351,10 @@ static void taddr2str(uint8_t l3proto, const t_addr *a, char *buf, size_t bufsiz
 void ConntrackPoolDump(const t_conntrack *p)
 {
 	t_conntrack_pool *t, *tmp;
+	struct timespec tnow;
 	char sa1[40], sa2[40];
-	time_t tnow = time(NULL);
+
+	if (clock_gettime(CLOCK_REALTIME, &tnow)) return;
 	HASH_ITER(hh, p->pool, t, tmp) {
 		taddr2str(t->conn.l3proto, &t->conn.src, sa1, sizeof(sa1));
 		taddr2str(t->conn.l3proto, &t->conn.dst, sa2, sizeof(sa2));
@@ -358,7 +362,7 @@ void ConntrackPoolDump(const t_conntrack *p)
 			proto_name(t->conn.l4proto),
 			sa1, t->conn.sport, sa2, t->conn.dport,
 			t->conn.l4proto == IPPROTO_TCP ? connstate_s[t->track.pos.state] : "-",
-			(unsigned long long)t->track.t_start, (unsigned long long)(t->track.pos.t_last - t->track.t_start), (unsigned long long)(tnow - t->track.pos.t_last),
+			(unsigned long long)t->track.t_start.tv_sec, (unsigned long long)(t->track.pos.t_last.tv_sec - t->track.t_start.tv_sec), (unsigned long long)(tnow.tv_sec - t->track.pos.t_last.tv_sec),
 			(unsigned long long)t->track.pos.client.pdcounter, (unsigned long long)t->track.pos.client.pcounter, (unsigned long long)t->track.pos.client.pbcounter,
 			(unsigned long long)t->track.pos.server.pdcounter, (unsigned long long)t->track.pos.server.pcounter, (unsigned long long)t->track.pos.server.pbcounter);
 		if (t->conn.l4proto == IPPROTO_TCP)

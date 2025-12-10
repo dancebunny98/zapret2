@@ -32,7 +32,7 @@ typedef struct
 
 typedef struct
 {
-	time_t t_last;
+	struct timespec t_last;
 	t_connstate state;
 	t_ctrack_position client, server;
 }

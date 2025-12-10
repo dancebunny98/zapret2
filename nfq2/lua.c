@@ -929,6 +929,18 @@ void lua_pushi_lint(lua_Integer idx, int64_t v)
 	lua_pushlint(params.L, v);
 	lua_rawset(params.L,-3);
 }
+void lua_pushf_number(const char *field, lua_Number v)
+{
+	lua_pushstring(params.L, field);
+	lua_pushnumber(params.L, v);
+	lua_rawset(params.L,-3);
+}
+void lua_pushi_number(lua_Integer idx, lua_Number v)
+{
+	lua_pushinteger(params.L, idx);
+	lua_pushnumber(params.L, v);
+	lua_rawset(params.L,-3);
+}
 void lua_pushf_bool(const char *field, bool b)
 {
 	lua_pushstring(params.L, field);
@@ -1308,7 +1320,7 @@ void lua_pushf_ctrack(const t_ctrack *ctrack, const t_ctrack_positions *tpos, bo
 		lua_pushf_reg("lua_state", ctrack->lua_state);
 		lua_pushf_bool("lua_in_cutoff", ctrack->b_lua_in_cutoff);
 		lua_pushf_bool("lua_out_cutoff", ctrack->b_lua_out_cutoff);
-		lua_pushf_lint("t_start", ctrack->t_start);
+		lua_pushf_lint("t_start", (lua_Number)ctrack->t_start.tv_sec + ctrack->t_start.tv_nsec/1000000000.);
 
 		lua_pushliteral(params.L, "pos");
 		lua_createtable(params.L, 0, 5);
@@ -1316,7 +1328,9 @@ void lua_pushf_ctrack(const t_ctrack *ctrack, const t_ctrack_positions *tpos, bo
 		// orig, reply related to connection logical direction
 		// for tcp orig is client (who connects), reply is server (who listens). 
 		// for orig is the first seen party, reply is another party
-		lua_pushf_lint("dt", tpos->t_last - ctrack->t_start);
+		lua_pushf_number("dt",
+			(lua_Number)tpos->t_last.tv_sec - (lua_Number)ctrack->t_start.tv_sec +
+			(tpos->t_last.tv_nsec - ctrack->t_start.tv_nsec)/1000000000.);
 
 		lua_pushliteral(params.L, "client");
 		lua_newtable(params.L);

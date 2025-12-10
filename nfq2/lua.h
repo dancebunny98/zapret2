@@ -69,6 +69,8 @@ void lua_pushf_int(const char *field, lua_Integer v);
 void lua_pushi_int(lua_Integer idx, lua_Integer v);
 void lua_pushf_lint(const char *field, int64_t v);
 void lua_pushi_lint(lua_Integer idx, int64_t v);
+void lua_pushf_number(const char *field, lua_Number v);
+void lua_pushi_number(lua_Integer idx, lua_Number v);
 void lua_push_raw(const void *v, size_t l);
 void lua_pushf_raw(const char *field, const void *v, size_t l);
 void lua_pushi_raw(lua_Integer idx, const void *v, size_t l);

@@ -54,7 +54,7 @@ typedef struct
 	bool bCheckDone, bCheckResult, bCheckExcluded; // hostlist check result cache
 	uint8_t ipproto;
 
-	time_t t_start;
+	struct timespec t_start;
 
 	// this block of data can change between delayed (queued) packets. need to remeber this data for each packet for further replay
 	t_ctrack_positions pos;
