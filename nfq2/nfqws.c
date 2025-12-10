@@ -1699,22 +1699,6 @@ static const struct option long_options[] = {
 
 int main(int argc, char **argv)
 {
-/*
-	t_reassemble t;
-	ReasmInit(&t,16,-10);
-	memset(t.packet,0,16);
-	bool b;
-	b=ReasmFeed(&t,-10,"0123456789",10);
-	printf("b=%u size=%zu seq=%d s=%s\n",b,t.size_present,t.seq,t.packet);
-	b=ReasmFeed(&t,0,"YOREK",5);
-	printf("b=%u size=%zu seq=%d s=%s\n",b,t.size_present,t.seq,t.packet);
-	b=ReasmFeed(&t,-12,"XOR",3);
-	printf("b=%u size=%zu seq=%d s=%s\n",b,t.size_present,t.seq,t.packet);
-	b=ReasmFeed(&t,3,"abc",3);
-	printf("b=%u size=%zu seq=%d s=%s\n",b,t.size_present,t.seq,t.packet);
-	return 0;
-*/
-
 #ifdef __CYGWIN__
 	if (service_run(argc, argv))
 	{
