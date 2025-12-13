@@ -25,9 +25,9 @@ typedef struct
 	// tcp only state, not used in udp
 	uint32_t seq0;		// starting seq and ack
 	uint16_t winsize;	// last seen window size
-	uint8_t scale;		// last seen window scale factor. SCALE_NONE if none
-	uint32_t winsize_calc;	// calculated window size
 	uint16_t mss;
+	uint32_t winsize_calc;	// calculated window size
+	uint8_t scale;		// last seen window scale factor. SCALE_NONE if none
 } t_ctrack_position;
 
 typedef struct
