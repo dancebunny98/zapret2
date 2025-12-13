@@ -820,3 +820,282 @@ nfqws2 следит за превышением верхней границы с
 * Строчка `--lua-desync=fake:blob=fake_default_tls:badsum:strategy=1` вызывает функцию `fake` с 3 аргументами : `blob`, `badsum`, `strategy`.
 Значением аргумента `badsum` является пустая строка.
 
+## Прототип LUA функции
+
+Стандартная LUA функция имеет прототип
+
+`function desync_f(ctx,desync)`
+
+* ctx - контекст для вызова некоторых C функций
+* desync - таблица, содержащая все передаваемые значения, включая аргументы, диссект текущего пакета и т.д.
+
+Функция возвращает вердикт по текущему пакету - VERDICT_PASS, VERDICT_MODIFY, VERDICT_DROP.
+Может не возвращать ничего, тогда результат приравниваться к VERDICT_PASS.
+
+* VERDICT_PASS передает пакет как есть без учета изменений диссекта
+* VERDICT_MODIFY выполняет реконструкцию и отправку текущего диссекта
+* VERDICT_DROP дропает текущий пакет
+
+Результат всех lua-desync инстансов аггрегируется : VERDICT_MODIFY замещает VERDICT_PASS, VERDICT_DROP замещает их обоих.
+
+
+### Структура таблицы desync
+
+Лучше всего изучать структуру desync по ее реальному содержиому, выполняя тестовую desync функцию pktdebug из zapret-lib.lua.
+
+<details> 
+  <summary>Пакет http-req от запроса по ipv6 к http://one.one.one.one</summary>
+<pre>
+desync:
+.target
+  .port
+    number 80
+  .ip6
+    string 26 06 47 00 47 00 00 00 00 00 00 00 00 00 10 01
+.func
+  string pktdebug
+.func_n
+  number 1
+.profile_n
+  number 1
+.l7payload
+  string http_req
+.dis
+  .tcp
+    .th_dport
+      number 80
+    .th_x2
+      number 0
+    .th_off
+      number 8
+    .th_sum
+      number 18781
+    .th_win
+      number 64
+    .options
+      .1
+        .kind
+          number 1
+      .2
+        .kind
+          number 1
+      .3
+        .data
+          string 30 40 18 9A 6F A5 3E 89
+        .kind
+          number 8
+    .th_seq
+      number 19930989
+    .th_ack
+      number 1489231977
+    .th_flags
+      number 24
+    .th_urp
+      number 0
+    .th_sport
+      number 48118
+  .ip6
+    .ip6_flow
+      number 1871905881
+    .ip6_hlim
+      number 64
+    .ip6_dst
+      string 26 06 47 00 47 00 00 00 00 00 00 00 00 00 10 01
+    .exthdr
+    .ip6_plen
+      number 110
+    .ip6_src
+      string 1A E5 18 81 E1 CD E8 24 BA 16 39 FF FE 8A DE 12
+    .ip6_nxt
+      number 6
+  .payload
+    string 47 45 54 20 2F 20 48 54 54 50 2F 31 2E 31 0D 0A 48 6F 73 74 3A 20 6F 6E 65 2E 6F 6E 65 2E 6F 6E 65 2E 6F 6E 65 0D 0A 55 73 65 72 2D 41 67 65 6E 74 3A 20 63 75 72 6C 2F 38 2E 38 2E 30 0D 0A 41 63 63 65 70 74 3A 20 2A 2F 2A 0D 0A 0D 0A
+  .l4proto
+    number 6
+  .transport_len
+    number 110
+.reasm_offset
+  number 0
+.reasm_data
+  string 47 45 54 20 2F 20 48 54 54 50 2F 31 2E 31 0D 0A 48 6F 73 74 3A 20 6F 6E 65 2E 6F 6E 65 2E 6F 6E 65 2E 6F 6E 65 0D 0A 55 73 65 72 2D 41 67 65 6E 74 3A 20 63 75 72 6C 2F 38 2E 38 2E 30 0D 0A 41 63 63 65 70 74 3A 20 2A 2F 2A 0D 0A 0D 0A
+.ifout
+  string eth0
+.fwmark
+  number 0
+.func_instance
+  string pktdebug_1_1
+.replay
+  boolean false
+.track
+  .pos
+    .dt
+      number 0.013066192
+    .server
+      .tcp
+        .pos
+          number 1
+        .rseq
+          number 1
+        .scale
+          number 13
+        .mss
+          number 1360
+        .winsize_calc
+          number 65535
+        .uppos
+          number 0
+        .seq0
+          number 1489231976
+        .seq
+          number 1489231977
+        .uppos_prev
+          number 0
+        .winsize
+          number 65535
+      .pcounter
+        number 1
+      .pdcounter
+        number 0
+      .pbcounter
+        number 0
+    .client
+      .tcp
+        .pos
+          number 79
+        .rseq
+          number 1
+        .scale
+          number 10
+        .mss
+          number 1380
+        .winsize_calc
+          number 65536
+        .uppos
+          number 79
+        .seq0
+          number 19930988
+        .seq
+          number 19930989
+        .uppos_prev
+          number 0
+        .winsize
+          number 64
+      .pcounter
+        number 3
+      .pdcounter
+        number 1
+      .pbcounter
+        number 78
+    .reverse
+      .tcp
+        .pos
+          number 1
+        .rseq
+          number 1
+        .scale
+          number 13
+        .mss
+          number 1360
+        .winsize_calc
+          number 65535
+        .uppos
+          number 0
+        .seq0
+          number 1489231976
+        .seq
+          number 1489231977
+        .uppos_prev
+          number 0
+        .winsize
+          number 65535
+      .pcounter
+        number 1
+      .pdcounter
+        number 0
+      .pbcounter
+        number 0
+    .direct
+      .tcp
+        .pos
+          number 79
+        .rseq
+          number 1
+        .scale
+          number 10
+        .mss
+          number 1380
+        .winsize_calc
+          number 65536
+        .uppos
+          number 79
+        .seq0
+          number 19930988
+        .seq
+          number 19930989
+        .uppos_prev
+          number 0
+        .winsize
+          number 64
+      .pcounter
+        number 3
+      .pdcounter
+        number 1
+      .pbcounter
+        number 78
+  .lua_state
+  .hostname
+    string one.one.one.one
+  .hostname_is_ip
+    boolean false
+  .lua_in_cutoff
+    boolean true
+  .lua_out_cutoff
+    boolean false
+  .t_start
+    number 1700000000
+  .incoming_ttl
+    number 51
+  .l7proto
+    string http
+.arg
+  .testarg1
+    string val1
+  .testarg2
+    string val2
+.tcp_mss
+  number 1360
+.l7proto
+  string http
+.outgoing
+  boolean true
+</pre>
+</details>
+
+
+| Поле  |  Тип |  Содержание  | Примечание |
+|-------|------|:-------------|------------|
+| func | string | имя desync функции | |
+| func_n | number |   номер инстанса внутри профиля  | |
+| func_instance | string | название инстанса | производная имени функции, номера инстанса и номера профиля |
+| profile_n | number | номер профиля | |
+| profile_name | string | название профиля | может отсутствовать |
+| template_n | number | номер шаблона, на базе которого создан профиль | может отсутствовать |
+| template_name | string | название шаблона, на базе которого создан профиль | может отсутствовать |
+| cookie | string | значение параметра nfqws2 --cookie для профиля | может отсутствовать |
+| outgoing | bool | true , если направление исходящее | |
+| ifin | string | имя входящего интерфейса | может отсутствовать |
+| ifout | string | имя исходящего интерфейса | может отсутствовать |
+| fwmark | number | fwmark текущего пакета | только в Linux |
+| target | table | таблица, включающая ip адрес и порт, на базе которых проверяются ipset-ы и фильтры по портам | |
+| replay | bool | проигрывание задержанного пакета (replay) | |
+| replay_piece | number | номер проигрываемой части | нумерация с 1 |
+| replay_piece_count | number | количество проигрываемых частей| |
+| replay_piece_last | bool | последняя проигрываемая часть | |
+| l7payload | string | тип пейлоада текущего пакета или группы пакетов | если неизвестно - unknown |
+| l7proto | string | тип протокола сеансе | если неизвестно - unknown |
+| reasm_data | string | результат сборки многопакетного сообщения, либо сам пейлоад, если сборки не было | только для tcp |
+| reasm_offset | string | смещение текущего переигрываемого пакета в сборке | только для tcp |
+| decrypt_data | string | результат сборки и дешифровки пейлоада или пейлоадов нескольких пакетов | применяется для quic |
+| tcp_mss | number | MSS противоположного конца tcp соединения | только для tcp |
+| lua_state | table | таблица, привязанная к потоку и передаваемая всем инстансам  | только если есть conntrack, может не быть |
+| track | table | данные, привязанные к записи conntrack  | только если есть conntrack, может не быть |
