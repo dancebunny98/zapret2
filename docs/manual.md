@@ -1523,7 +1523,7 @@ HKDF - HMAC-based Key Derivation Function. Генератор ключей на 
 
 * hash_type может быть "sha256" или "sha224"
 * salt - raw строка произвольного размера, может быть nil. "соль". несекретная информация. позволяет сделать результат разным на тех же ikm для разных значений salt. если nil, используется блок нулевых байт размером, равным размеру результата hash функции.
-* ikm - raw строка - input keying material. на базе этих данных и salt генерируется okm - output keying material
+* ikm - raw строка - input keying material. на базе этих данных, salt и info генерируется okm - output keying material
 * info - raw строка произвольного размера, может быть nil. аналогично salt, но salt подмешивается на extraction phase, а info - на expansion. если nil, то используется info нулевого размера.
 * okm_len - требуемая длина okm - output keying material
 * возвращается raw строка - okm
