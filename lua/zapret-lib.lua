@@ -234,6 +234,12 @@ function desync_orchestrator_example(ctx, desync)
 	return replay_execution_plan(desync)
 end
 
+-- if seq is over 2G s and p position comparision can be wrong
+function pos_counter_overflow(desync, mode, reverse)
+	if not desync.track or not desync.track.tcp or (mode~='s' and mode~='p') then return false end
+	local track_pos = reverse and desync.track.pos.reverse or desync.track.pos.direct
+	return track_pos.tcp.seq_over_2G
+end
 -- these functions duplicate range check logic from C code
 -- mode must be n,d,b,s,x,a
 -- pos is {mode,pos}
@@ -265,7 +271,7 @@ function pos_get(desync, mode, reverse)
 	return 0
 end
 function pos_check_from(desync, range)
-	if range.from.mode == 'x' then return false end
+	if range.from.mode == 'x' or pos_counter_overflow(desync, range.from.mode) then return false end
 	if range.from.mode ~= 'a' then
 		if desync.track then
 			return pos_get(desync, range.from.mode) >= range.from.pos
@@ -277,7 +283,7 @@ function pos_check_from(desync, range)
 end
 function pos_check_to(desync, range)
 	local ps
-	if range.to.mode == 'x' then return false end
+	if range.to.mode == 'x' or pos_counter_overflow(desync, range.to.mode) then return false end
 	if range.to.mode ~= 'a' then
 		if desync.track then
 			ps = pos_get(desync, range.to.mode)

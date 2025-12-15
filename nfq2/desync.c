@@ -505,7 +505,10 @@ static uint8_t ct_new_postnat_fix(const t_ctrack *ctrack, const struct dissect *
 	return VERDICT_DROP;
 }
 
-
+static bool pos_overflow(const t_ctrack_position *pos, char mode)
+{
+	return (mode=='s' || mode=='p') && pos && pos->seq_over_2G;
+}
 static uint64_t pos_get(const t_ctrack_position *pos, char mode)
 {
 	if (pos)
@@ -524,7 +527,7 @@ static uint64_t pos_get(const t_ctrack_position *pos, char mode)
 static bool check_pos_from(const t_ctrack_position *pos, const struct packet_range *range)
 {
 	uint64_t ps;
-	if (range->from.mode == 'x') return false;
+	if ((range->from.mode == 'x') || pos_overflow(pos,range->from.mode)) return false;
 	if (range->from.mode != 'a')
 	{
 		if (pos)
@@ -540,7 +543,7 @@ static bool check_pos_from(const t_ctrack_position *pos, const struct packet_ran
 static bool check_pos_to(const t_ctrack_position *pos, const struct packet_range *range)
 {
 	uint64_t ps;
-	if (range->to.mode == 'x') return false;
+	if (range->to.mode == 'x' || pos_overflow(pos,range->to.mode)) return false;
 	if (range->to.mode != 'a')
 	{
 		if (pos)
@@ -754,10 +757,12 @@ static uint8_t desync(
 					DLOG("* lua '%s' : voluntary cutoff\n", instance);
 				else if (check_pos_cutoff(pos, range))
 				{
-					DLOG("* lua '%s' : %s pos %c%llu %c%llu is beyond range %c%u%c%c%u (ctrack %s)\n",
+					DLOG("* lua '%s' : %s pos %c%llu %c%llu overflow %u %u is beyond range %c%u%c%c%u (ctrack %s)\n",
 						instance, sDirection,
 						range->from.mode, pos_get(pos, range->from.mode),
 						range->to.mode, pos_get(pos, range->to.mode),
+						pos_overflow(pos, range->from.mode),
+						pos_overflow(pos, range->to.mode),
 						range->from.mode, range->from.pos,
 						range->upper_cutoff ? '<' : '-',
 						range->to.mode, range->to.pos,

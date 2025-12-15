@@ -155,6 +155,11 @@ static void ConntrackApplyPos(const struct tcphdr *tcp, t_ctrack *t, bool bRever
 	if (direct->scale != SCALE_NONE) direct->winsize_calc <<= direct->scale;
 	if (mss && !direct->mss) direct->mss = mss;
 	if (scale != SCALE_NONE) direct->scale = scale;
+
+	if (!direct->seq_over_2G && ((direct->seq_last - direct->seq0) & 0x80000000))
+		direct->seq_over_2G = true;
+	if (!reverse->seq_over_2G && ((reverse->seq_last - reverse->seq0) & 0x80000000))
+		reverse->seq_over_2G = true;
 }
 
 // non-tcp packets are passed with tcphdr=NULL but len_payload filled
@@ -208,19 +213,7 @@ static void ConntrackFeedPacket(t_ctrack *t, bool bReverse, const struct tcphdr 
 
 		ConntrackApplyPos(tcphdr, t, bReverse, len_payload);
 	}
-	else
-	{
-		if (bReverse)
-		{
-			t->pos.server.seq_last = t->pos.server.pos;
-			t->pos.server.pos += len_payload;
-		}
-		else
-		{
-			t->pos.client.seq_last = t->pos.client.pos;
-			t->pos.client.pos += len_payload;
-		}
-	}
+
 	clock_gettime(CLOCK_REALTIME, &t->pos.t_last);
 	// make sure t_start gets exactly the same value as first t_last
 	if (!t->t_start.tv_sec) t->t_start = t->pos.t_last;
