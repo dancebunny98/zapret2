@@ -2395,7 +2395,7 @@ function apply_arg_prefix(desync)
 function apply_execution_plan(desync, instance)
 ```
 
-Копирует в desync идентификацию инстанса и его аргументы из элемента execution plan 'instance',
+Копирует в desync идентификацию инстанса и его аргументы из элемента execution plan `instance`,
 тем самым воссоздает состояние desync, как если бы `instance` был вызван напрямую C кодом.
 execution plan выдается C функцией `execution_plan()` как массив, элементами которого являются `instance`.
 
@@ -2435,7 +2435,7 @@ function orchestrate(ctx, desync)
 function replay_execution_plan(desync)
 ```
 
-Выполняет весь execution plan из desync.plan.
+Выполняет весь execution plan из desync.plan с учетом instance cutoff и стандартных фильтров payload и range.
 
 
 # Библиотека программ атаки на DPI zapret-antidpi.lua
