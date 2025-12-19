@@ -1600,7 +1600,7 @@ HKDF - HMAC-based Key Derivation Function. Генератор ключей на 
 #### uname
 
 ```
-	function uname()
+function uname()
 ```
 
 Возвращает то же самое, что и команда uname в shell - название ядра ОС. "Linux", "FreeBSD", "OpenBSD".
@@ -1609,7 +1609,7 @@ HKDF - HMAC-based Key Derivation Function. Генератор ключей на 
 #### clock_gettime
 
 ```
-	function clock_gettime()
+function clock_gettime()
 ```
 
 Узнать точное время. Возвращает 2 значения - unixtime в секундах и наносекунды. Встроенная функция `os.time()` не выдает наносекунды.
@@ -1617,8 +1617,8 @@ HKDF - HMAC-based Key Derivation Function. Генератор ключей на 
 #### getpid
 
 ```
-	function getpid()
-	function gettid()
+function getpid()
+function gettid()
 ```
 
 * getpid() возвращает идентификатор текущего процесса - PID
@@ -2530,7 +2530,7 @@ function replay_drop(desync)
 По сухому описанию может быть сложно понять как работает оркестрация. Рекомендуется изучить код реальных оркестраторов,
 а описанием пользоваться для уточнения смысла отдельных действий.
 
-### instance_cutoff_shim(
+### instance_cutoff_shim
 
 ```
 function instance_cutoff_shim(ctx, desync, dir)
@@ -3044,3 +3044,71 @@ function tcpseg(ctx, desync)
 Вердикт не выносится.
 
 С помощью tcpseg можно сделать seqovl без сегментации, используя маркеры "0,-1". Для замещения текущего диссекта можно комбинировать с drop.
+
+## Дурение udp
+
+Для udp намного меньше вариантов, чем для tcp, в силу простоты данного протокола. С ним особо нечего делать.
+От stateful DPI могут помочь [фейки](#fake). От stateless они не помогут. Может помочь [фрагментация на уровне IP](#standard-ipfrag).
+Для ipv6 могут сработать [extension headers](#standard-fooling).
+
+Из остального - только искажение самого пейлоада. Не все программы стерпят искажение информации, многие просто отбросят искаженные пакеты. Но есть и такие, в которых понятно что можно "подкрутить".
+
+### udplen
+
+```
+function udplen(ctx, desync)
+```
+
+* arg: [standard direction](#standard-direction)
+* arg: [standard payload](#standard-payload)
+* arg: min - не трогать пакеты с длиной L4 пейлоада меньше
+* arg: max - не трогать пакеты с длиной L4 пейлоада больше
+* arg: increment - на сколько увеличить (+) или уменьшить (-) длину L4 пейлоада
+* arg: pattern - blob, которым заполняется конец пакета при увеличении длины
+* arg: pattern_offset - начальное смещение внутри pattern
+* payload фильтр по умолчанию - "known"
+
+Функция увеличивает или уменьшает длину L4 пейлоада udp. При уменьшении часть информации обрезается и теряется, при увеличении - заполняется pattern. Сегментация udp невозможна - при превышении MTU или PMTU пакет не дойдет до адресата. Ошибка в случае превышения MTU будет только на Linux, остальные системы молча не отправят пакет (windivert и ipdivert не имеют средств обнаружения ошибки).
+
+### dht_dn
+
+```
+function dht_dn(ctx, desync)
+```
+
+* arg: [standard direction](#standard-direction)
+* arg: dn - число N, следующее после 'd' в сообщении dht
+
+dht использует формат bencode для передачи сообщений. 'd' - это тип данных directory. Сообщения dht как правило начинаются с 'd1' или 'd2' и заканчиваются 'e' (end). В некоторых DPI прописаны именно такие сигнатуры - только 'd1' или 'd1'+'d2'. Но можно поставить и 'd3', 'd4', ..., если корректно отредактировать содержимое, не нарушив формат bencode. Этим и занимается данная функция. Работает только по пейлоаду с типом "dht".
+
+
+
+## Другие функции
+
+### synack
+
+```
+function synack(ctx, desync)
+```
+
+* arg: [standard ipfrag](#standard-ipfrag)
+* arg: [standard reconstruct](#standard-reconstruct)
+* arg: [standard rawsend](#standard-rawsend)
+
+Отсылает перед SYN пакет SYN,ACK, чтобы запутать DPI относительно направления IP соединения. Атака называется в литературе "TCB turnaround". Ломает NAT - через NAT применение невозможно. Применение на проходящем трафике требует nftables и режим POSTNAT. После прохода пакета без SYN выполняет instance cutoff. Вердикт не выносит.
+
+### synack_split
+
+```
+function synack_split(ctx, desync)
+```
+
+* arg: [standard ipfrag](#standard-ipfrag)
+* arg: [standard reconstruct](#standard-reconstruct)
+* arg: [standard rawsend](#standard-rawsend)
+* arg: mode - "syn", "synack" или "acksyn"
+
+Методика предназначена для серверов. В литературе имеет название "TCP split handshake". Заменяет исходящий от сервера пакет SYN,ACK на SYN, 2 пакета SYN + ACK или 2 пакета ACK + SYN. В случае успеха отсылки выносит VERDICT_DROP. После прохода пакета без SYN,ACK выполняет instance cutoff.
+
+Многие DPI ожидают стандартный ответ на SYN в виде SYN,ACK. В реальности получается, что ответ на SYN является тоже SYN, а потом клиент шлет серверу SYN,ACK. Тем самым DPI перестает понимать какая сторона является клиентом, а какая сервером, и алгоритм проверки дает сбой. Атака может сработать даже если клиент не делает ничего для обхода блокировки. Может использоваться совместно с клиентскими техниками для точечного пробития tcp.
+
