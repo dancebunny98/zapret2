@@ -1933,9 +1933,9 @@ function posdebug(ctx, desync)
 function detect_payload_str(ctx, desync)
 ```
 
--- arg: pattern - подстрока для поиска в desync.dis.payload
--- arg: payload - присвоить это значение desync.l7payload в случае наличия подстроки
--- arg: undetected - если присутствует, присвоить это значение desync.l7payload в случае отсутствия подстроки
+* arg: pattern - подстрока для поиска в desync.dis.payload
+* arg: payload - присвоить это значение desync.l7payload в случае наличия подстроки
+* arg: undetected - если присутствует, присвоить это значение desync.l7payload в случае отсутствия подстроки
 
 Пример простейшего протокольного детектора. Ищется подстрока pattern в пейлоаде, в случае нахождения присваивает desync.l7payload = desync.arg.payload , иначе если есть desync.arg.undetected, присваивает desync.l7payload = desync.arg.undetected.
 
