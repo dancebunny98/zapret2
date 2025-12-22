@@ -1144,6 +1144,7 @@ static uint8_t dpi_desync_tcp_packet_play(
 	else
 		bCheckDone = bCheckResult = bCheckExcluded = false;
 
+	bool bHaveHost = false, bHostIsIp = false;
 	if (bReverse)
 	{
 		// protocol detection
@@ -1215,7 +1216,6 @@ static uint8_t dpi_desync_tcp_packet_play(
 		struct blob_collection_head *fake;
 		uint8_t *p, *phost = NULL;
 		int i;
-		bool bHaveHost = false, bHostIsIp = false;
 
 		if (replay_piece_count)
 		{
@@ -1313,91 +1313,90 @@ static uint8_t dpi_desync_tcp_packet_play(
 			protocol_probe(testers, sizeof(testers) / sizeof(*testers), dis->data_payload, dis->len_payload, ctrack, &l7proto, &l7payload);
 		}
 
-		if (bHaveHost)
-		{
-			bHostIsIp = strip_host_to_ip(host);
-			DLOG("hostname: %s\n", host);
-		}
+	}
 
-		bool bDiscoveredL7;
+	if (bHaveHost)
+	{
+		bHostIsIp = strip_host_to_ip(host);
+		DLOG("hostname: %s\n", host);
+	}
+
+	bool bDiscoveredL7;
+	if (ctrack_replay)
+	{
+		if ((bDiscoveredL7 = !ctrack_replay->l7proto_discovered && ctrack_replay->l7proto != L7_UNKNOWN))
+			ctrack_replay->l7proto_discovered = true;
+	}
+	else
+		bDiscoveredL7 = l7proto != L7_UNKNOWN;
+	if (bDiscoveredL7) DLOG("discovered l7 protocol\n");
+
+	bool bDiscoveredHostname = bHaveHost && !(ctrack_replay && ctrack_replay->hostname_discovered);
+	if (bDiscoveredHostname)
+	{
+		DLOG("discovered hostname\n");
 		if (ctrack_replay)
 		{
-			if ((bDiscoveredL7 = !ctrack_replay->l7proto_discovered && ctrack_replay->l7proto != L7_UNKNOWN))
-				ctrack_replay->l7proto_discovered = true;
-		}
-		else
-			bDiscoveredL7 = l7proto != L7_UNKNOWN;
-		if (bDiscoveredL7) DLOG("discovered l7 protocol\n");
-
-		bool bDiscoveredHostname = bHaveHost && !(ctrack_replay && ctrack_replay->hostname_discovered);
-		if (bDiscoveredHostname)
-		{
-			DLOG("discovered hostname\n");
-			if (ctrack_replay)
+			free(ctrack_replay->hostname);
+			ctrack_replay->hostname = strdup(host);
+			ctrack_replay->hostname_is_ip = bHostIsIp;
+			if (!ctrack_replay->hostname)
 			{
-				free(ctrack_replay->hostname);
-				ctrack_replay->hostname = strdup(host);
-				ctrack_replay->hostname_is_ip = bHostIsIp;
-				if (!ctrack_replay->hostname)
-				{
-					DLOG_ERR("hostname dup : out of memory");
-					goto pass_reasm_cancel;
-				}
-				ctrack_replay->hostname_discovered = true;
-				if (!ipcache_put_hostname(sdip4, sdip6, host, bHostIsIp))
-					goto pass_reasm_cancel;
-
+				DLOG_ERR("hostname dup : out of memory");
+				goto pass_reasm_cancel;
 			}
-		}
+			ctrack_replay->hostname_discovered = true;
+			if (!ipcache_put_hostname(sdip4, sdip6, host, bHostIsIp))
+				goto pass_reasm_cancel;
+			}
+	}
 
-		if (bDiscoveredL7 || bDiscoveredHostname)
+	if (bDiscoveredL7 || bDiscoveredHostname)
+	{
+		struct desync_profile *dp_prev = dp;
+		// search for desync profile again. it may have changed.
+		dp = dp_find(&params.desync_profiles, IPPROTO_TCP, sdip4, sdip6, sdport,
+			ctrack_replay ? ctrack_replay->hostname : bHaveHost ? host : NULL,
+			ctrack_replay ? ctrack_replay->hostname_is_ip : bHostIsIp,
+			l7proto, ssid,
+			&bCheckDone, &bCheckResult, &bCheckExcluded);
+		if (ctrack_replay)
 		{
-			struct desync_profile *dp_prev = dp;
-
-			// search for desync profile again. it may have changed.
-			dp = dp_find(&params.desync_profiles, IPPROTO_TCP, sdip4, sdip6, sdport,
-				ctrack_replay ? ctrack_replay->hostname : bHaveHost ? host : NULL,
-				ctrack_replay ? ctrack_replay->hostname_is_ip : bHostIsIp,
-				l7proto, ssid,
-				&bCheckDone, &bCheckResult, &bCheckExcluded);
+			ctrack_replay->dp = dp;
+			ctrack_replay->dp_search_complete = true;
+			ctrack_replay->bCheckDone = bCheckDone;
+			ctrack_replay->bCheckResult = bCheckResult;
+			ctrack_replay->bCheckExcluded = bCheckExcluded;
+		}
+		if (!dp) goto pass_reasm_cancel;
+		if (dp != dp_prev)
+		{
+			dp_changed(ctrack_replay);
+			DLOG("desync profile changed by revealed l7 protocol or hostname !\n");
+		}
+	}
+	if (bHaveHost && !PROFILE_HOSTLISTS_EMPTY(dp))
+	{
+		if (!bCheckDone)
+		{
+			bCheckResult = HostlistCheck(dp, host, bHostIsIp, &bCheckExcluded, false);
+			bCheckDone = true;
 			if (ctrack_replay)
 			{
-				ctrack_replay->dp = dp;
-				ctrack_replay->dp_search_complete = true;
 				ctrack_replay->bCheckDone = bCheckDone;
 				ctrack_replay->bCheckResult = bCheckResult;
 				ctrack_replay->bCheckExcluded = bCheckExcluded;
 			}
-			if (!dp) goto pass_reasm_cancel;
-			if (dp != dp_prev)
-			{
-				dp_changed(ctrack_replay);
-				DLOG("desync profile changed by revealed l7 protocol or hostname !\n");
-			}
 		}
-		if (bHaveHost && !PROFILE_HOSTLISTS_EMPTY(dp))
+		if (bCheckResult)
+			ctrack_stop_retrans_counter(ctrack_replay);
+		else
 		{
-			if (!bCheckDone)
+			if (ctrack_replay)
 			{
-				bCheckResult = HostlistCheck(dp, host, bHostIsIp, &bCheckExcluded, false);
-				bCheckDone = true;
-				if (ctrack_replay)
-				{
-					ctrack_replay->bCheckDone = bCheckDone;
-					ctrack_replay->bCheckResult = bCheckResult;
-					ctrack_replay->bCheckExcluded = bCheckExcluded;
-				}
-			}
-			if (bCheckResult)
-				ctrack_stop_retrans_counter(ctrack_replay);
-			else
-			{
-				if (ctrack_replay)
-				{
-					ctrack_replay->hostname_ah_check = dp->hostlist_auto && !bCheckExcluded;
-					if (!ctrack_replay->hostname_ah_check)
-						ctrack_stop_retrans_counter(ctrack_replay);
-				}
+				ctrack_replay->hostname_ah_check = dp->hostlist_auto && !bCheckExcluded;
+				if (!ctrack_replay->hostname_ah_check)
+					ctrack_stop_retrans_counter(ctrack_replay);
 			}
 		}
 	}
@@ -1428,6 +1427,25 @@ static void quic_reasm_cancel(t_ctrack *ctrack, const char *reason)
 {
 	reasm_client_cancel(ctrack);
 	DLOG("%s\n", reason);
+}
+
+static void udp_standard_protocol_probe(const uint8_t *data_payload, size_t len_payload, t_ctrack *ctrack, t_l7proto *l7proto, t_l7payload *l7payload)
+{
+	t_protocol_probe testers[] = {
+		{L7P_DISCORD_IP_DISCOVERY,L7_DISCORD,IsDiscordIpDiscoveryRequest,false},
+		{L7P_STUN,L7_STUN,IsStunMessage,false},
+		{L7P_DNS_QUERY,L7_DNS,IsDNSQuery,false},
+		{L7P_DNS_RESPONSE,L7_DNS,IsDNSResponse,false},
+		{L7P_DHT,L7_DHT,IsDht,false},
+		{L7P_DTLS_CLIENT_HELLO,L7_DTLS,IsDTLSClientHello,false},
+		{L7P_DTLS_SERVER_HELLO,L7_DTLS,IsDTLSServerHello,false},
+		{L7P_WIREGUARD_INITIATION,L7_WIREGUARD,IsWireguardHandshakeInitiation,false},
+		{L7P_WIREGUARD_RESPONSE,L7_WIREGUARD,IsWireguardHandshakeResponse,false},
+		{L7P_WIREGUARD_COOKIE,L7_WIREGUARD,IsWireguardHandshakeCookie,false},
+		{L7P_WIREGUARD_KEEPALIVE,L7_WIREGUARD,IsWireguardKeepalive,false},
+		{L7P_WIREGUARD_DATA,L7_WIREGUARD,IsWireguardData,true}};
+
+	protocol_probe(testers, sizeof(testers) / sizeof(*testers), data_payload, len_payload, ctrack, l7proto, l7payload);
 }
 
 
@@ -1589,24 +1607,14 @@ static uint8_t dpi_desync_udp_packet_play(
 
 	if (dis->len_payload)
 	{
+		bool bHaveHost = false, bHostIsIp = false;
 		if (bReverse)
 		{
-			t_protocol_probe testers[] = {
-				{L7P_DNS_RESPONSE,L7_DNS,IsDNSResponse,false},
-				{L7P_DHT,L7_DHT,IsDht,false},
-				{L7P_STUN,L7_STUN,IsStunMessage,false},
-				{L7P_WIREGUARD_INITIATION,L7_WIREGUARD,IsWireguardHandshakeInitiation,false},
-				{L7P_WIREGUARD_RESPONSE,L7_WIREGUARD,IsWireguardHandshakeResponse,false},
-				{L7P_WIREGUARD_COOKIE,L7_WIREGUARD,IsWireguardHandshakeCookie,false},
-				{L7P_WIREGUARD_KEEPALIVE,L7_WIREGUARD,IsWireguardKeepalive,false},
-				{L7P_WIREGUARD_DATA,L7_WIREGUARD,IsWireguardData,true}
-			};
-			protocol_probe(testers, sizeof(testers) / sizeof(*testers), dis->data_payload, dis->len_payload, ctrack, &l7proto, &l7payload);
+			udp_standard_protocol_probe(dis->data_payload, dis->len_payload, ctrack, &l7proto, &l7payload);
 		}
 		else
 		{
 			struct blob_collection_head *fake;
-			bool bHaveHost = false, bHostIsIp = false;
 			if (IsQUICInitial(dis->data_payload, dis->len_payload))
 			{
 				DLOG("packet contains QUIC initial\n");
@@ -1739,114 +1747,101 @@ static uint8_t dpi_desync_udp_packet_play(
 			}
 			else // not QUIC initial
 			{
-				// received payload without host. it means we are out of the request retransmission phase. stop counter
-				ctrack_stop_retrans_counter(ctrack);
-
+				// not quic initial - stop reasm
 				reasm_client_cancel(ctrack);
 
-				t_protocol_probe testers[] = {
-					{L7P_DISCORD_IP_DISCOVERY,L7_DISCORD,IsDiscordIpDiscoveryRequest,false},
-					{L7P_STUN,L7_STUN,IsStunMessage,false},
-					{L7P_DNS_QUERY,L7_DNS,IsDNSQuery,false},
-					{L7P_DHT,L7_DHT,IsDht,false},
-					{L7P_WIREGUARD_INITIATION,L7_WIREGUARD,IsWireguardHandshakeInitiation,false},
-					{L7P_WIREGUARD_RESPONSE,L7_WIREGUARD,IsWireguardHandshakeResponse,false},
-					{L7P_WIREGUARD_COOKIE,L7_WIREGUARD,IsWireguardHandshakeCookie,false},
-					{L7P_WIREGUARD_KEEPALIVE,L7_WIREGUARD,IsWireguardKeepalive,false},
-					{L7P_WIREGUARD_DATA,L7_WIREGUARD,IsWireguardData,true}
-				};
-				protocol_probe(testers, sizeof(testers) / sizeof(*testers), dis->data_payload, dis->len_payload, ctrack, &l7proto, &l7payload);
+				udp_standard_protocol_probe(dis->data_payload, dis->len_payload, ctrack, &l7proto, &l7payload);
 			}
+		}
 
-			if (bHaveHost)
-			{
-				bHostIsIp = strip_host_to_ip(host);
-				DLOG("hostname: %s\n", host);
-			}
+		if (bHaveHost)
+		{
+			bHostIsIp = strip_host_to_ip(host);
+			DLOG("hostname: %s\n", host);
+		}
 
-			bool bDiscoveredL7;
+		bool bDiscoveredL7;
+		if (ctrack_replay)
+		{
+			if ((bDiscoveredL7 = !ctrack_replay->l7proto_discovered && l7proto != L7_UNKNOWN))
+				ctrack_replay->l7proto_discovered = true;
+		}
+		else
+			bDiscoveredL7 = l7proto != L7_UNKNOWN;
+		if (bDiscoveredL7) DLOG("discovered l7 protocol\n");
+
+		bool bDiscoveredHostname = bHaveHost && !(ctrack_replay && ctrack_replay->hostname_discovered);
+		if (bDiscoveredHostname)
+		{
+			DLOG("discovered hostname\n");
 			if (ctrack_replay)
 			{
-				if ((bDiscoveredL7 = !ctrack_replay->l7proto_discovered && l7proto != L7_UNKNOWN))
-					ctrack_replay->l7proto_discovered = true;
-			}
-			else
-				bDiscoveredL7 = l7proto != L7_UNKNOWN;
-			if (bDiscoveredL7) DLOG("discovered l7 protocol\n");
-
-			bool bDiscoveredHostname = bHaveHost && !(ctrack_replay && ctrack_replay->hostname_discovered);
-			if (bDiscoveredHostname)
-			{
-				DLOG("discovered hostname\n");
-				if (ctrack_replay)
+				ctrack_replay->hostname_discovered = true;
+				free(ctrack_replay->hostname);
+				ctrack_replay->hostname = strdup(host);
+				ctrack_replay->hostname_is_ip = bHostIsIp;
+				if (!ctrack_replay->hostname)
 				{
-					ctrack_replay->hostname_discovered = true;
-					free(ctrack_replay->hostname);
-					ctrack_replay->hostname = strdup(host);
-					ctrack_replay->hostname_is_ip = bHostIsIp;
-					if (!ctrack_replay->hostname)
-					{
-						DLOG_ERR("hostname dup : out of memory");
-						goto pass;
-					}
-					if (!ipcache_put_hostname(sdip4, sdip6, host, bHostIsIp))
-						goto pass;
+					DLOG_ERR("hostname dup : out of memory");
+					goto pass;
 				}
+				if (!ipcache_put_hostname(sdip4, sdip6, host, bHostIsIp))
+					goto pass;
 			}
+		}
 
-			if (bDiscoveredL7 || bDiscoveredHostname)
+		if (bDiscoveredL7 || bDiscoveredHostname)
+		{
+			struct desync_profile *dp_prev = dp;
+
+			// search for desync profile again. it may have changed.
+			dp = dp_find(&params.desync_profiles, IPPROTO_UDP, sdip4, sdip6, sdport,
+				ctrack_replay ? ctrack_replay->hostname : bHaveHost ? host : NULL,
+				ctrack_replay ? ctrack_replay->hostname_is_ip : bHostIsIp,
+				l7proto, ssid,
+				&bCheckDone, &bCheckResult, &bCheckExcluded);
+			if (ctrack_replay)
 			{
-				struct desync_profile *dp_prev = dp;
+				ctrack_replay->dp = dp;
+				ctrack_replay->dp_search_complete = true;
+				ctrack_replay->bCheckDone = bCheckDone;
+				ctrack_replay->bCheckResult = bCheckResult;
+				ctrack_replay->bCheckExcluded = bCheckExcluded;
+			}
+			if (!dp)
+				goto pass_reasm_cancel;
+			if (dp != dp_prev)
+			{
+				dp_changed(ctrack_replay);
+				DLOG("desync profile changed by revealed l7 protocol or hostname !\n");
+			}
+		}
+		else if (ctrack_replay)
+		{
+			bCheckDone = ctrack_replay->bCheckDone;
+			bCheckResult = ctrack_replay->bCheckResult;
+			bCheckExcluded = ctrack_replay->bCheckExcluded;
+		}
 
-				// search for desync profile again. it may have changed.
-				dp = dp_find(&params.desync_profiles, IPPROTO_UDP, sdip4, sdip6, sdport,
-					ctrack_replay ? ctrack_replay->hostname : bHaveHost ? host : NULL,
-					ctrack_replay ? ctrack_replay->hostname_is_ip : bHostIsIp,
-					l7proto, ssid,
-					&bCheckDone, &bCheckResult, &bCheckExcluded);
+		if (bHaveHost && !PROFILE_HOSTLISTS_EMPTY(dp))
+		{
+			if (!bCheckDone)
+			{
+				bCheckResult = HostlistCheck(dp, host, bHostIsIp, &bCheckExcluded, false);
+				bCheckDone = true;
 				if (ctrack_replay)
 				{
-					ctrack_replay->dp = dp;
-					ctrack_replay->dp_search_complete = true;
 					ctrack_replay->bCheckDone = bCheckDone;
 					ctrack_replay->bCheckResult = bCheckResult;
 					ctrack_replay->bCheckExcluded = bCheckExcluded;
 				}
-				if (!dp)
-					goto pass_reasm_cancel;
-				if (dp != dp_prev)
-				{
-					dp_changed(ctrack_replay);
-					DLOG("desync profile changed by revealed l7 protocol or hostname !\n");
-				}
 			}
-			else if (ctrack_replay)
+			if (bCheckResult)
+				ctrack_stop_retrans_counter(ctrack_replay);
+			else
 			{
-				bCheckDone = ctrack_replay->bCheckDone;
-				bCheckResult = ctrack_replay->bCheckResult;
-				bCheckExcluded = ctrack_replay->bCheckExcluded;
-			}
-
-			if (bHaveHost && !PROFILE_HOSTLISTS_EMPTY(dp))
-			{
-				if (!bCheckDone)
-				{
-					bCheckResult = HostlistCheck(dp, host, bHostIsIp, &bCheckExcluded, false);
-					bCheckDone = true;
-					if (ctrack_replay)
-					{
-						ctrack_replay->bCheckDone = bCheckDone;
-						ctrack_replay->bCheckResult = bCheckResult;
-						ctrack_replay->bCheckExcluded = bCheckExcluded;
-					}
-				}
-				if (bCheckResult)
-					ctrack_stop_retrans_counter(ctrack_replay);
-				else
-				{
-					if (ctrack_replay)
-						ctrack_replay->hostname_ah_check = dp->hostlist_auto && !bCheckExcluded;
-				}
+				if (ctrack_replay)
+					ctrack_replay->hostname_ah_check = dp->hostlist_auto && !bCheckExcluded;
 			}
 		}
 

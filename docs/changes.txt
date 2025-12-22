@@ -125,3 +125,8 @@ v0.7.5
 * ipset: remove get_reestr_hostlist.sh and get_reestr_resolve.sh because zapret-info does not and will probably not ever update
 * nfqws2: fix "reasm cancelled" if no incoming traffic redirected
 * blockcheck2: MULTIDISORDER=multidisorder_legacy
+
+v0.7.6
+
+* nfqws2: reevaluate profile on l7/host discovery in any direction
+* nfqws2: dtls protocol detection

@@ -726,6 +726,7 @@ ex:
 static void exit_clean(int code)
 {
 	cleanup_params(&params);
+
 	exit(code);
 }
 

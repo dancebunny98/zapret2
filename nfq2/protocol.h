@@ -11,6 +11,7 @@ typedef enum {
 	L7_KNOWN,
 	L7_HTTP,
 	L7_TLS,
+	L7_DTLS,
 	L7_QUIC,
 	L7_WIREGUARD,
 	L7_DHT,
@@ -34,6 +35,8 @@ typedef enum {
 	L7P_HTTP_REPLY,
 	L7P_TLS_CLIENT_HELLO,
 	L7P_TLS_SERVER_HELLO,
+	L7P_DTLS_CLIENT_HELLO,
+	L7P_DTLS_SERVER_HELLO,
 	L7P_QUIC_INITIAL,
 	L7P_WIREGUARD_INITIATION,
 	L7P_WIREGUARD_RESPONSE,
@@ -155,6 +158,10 @@ bool IsDht(const uint8_t *data, size_t len);
 bool IsDiscordIpDiscoveryRequest(const uint8_t *data, size_t len);
 bool IsStunMessage(const uint8_t *data, size_t len);
 bool IsMTProto(const uint8_t *data, size_t len);
+bool IsDTLS(const uint8_t *data, size_t len);
+bool IsDTLSClientHello(const uint8_t *data, size_t len);
+bool IsDTLSServerHello(const uint8_t *data, size_t len);
+
 
 #define QUIC_MAX_CID_LENGTH  20
 typedef struct quic_cid {
