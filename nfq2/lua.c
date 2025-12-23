@@ -412,7 +412,7 @@ static int luacall_parse_hex(lua_State *L)
 	LUA_STACK_GUARD_ENTER(L)
 
 	size_t l;
-	const char *hex = lua_tolstring(L,1,&l);
+	const char *hex = luaL_checklstring(L,1,&l);
 	if ((l&1)) goto err;
 	l>>=1;
 	uint8_t *p = malloc(l);
@@ -1291,7 +1291,7 @@ void lua_pushf_ctrack_pos(const t_ctrack *ctrack, const t_ctrack_position *pos)
 		lua_pushf_int("winsize_calc", pos->winsize_calc);
 		lua_pushf_int("scale", pos->scale);
 		lua_pushf_int("mss", pos->mss);
-		lua_pushf_int("ip6flow", pos->ip6flow);
+		lua_pushf_int("ip6_flow", pos->ip6flow);
 		lua_rawset(params.L,-3);
 	}
 
@@ -1659,7 +1659,7 @@ bool lua_reconstruct_iphdr(int idx, struct ip *ip, size_t *len)
 	if (lua_type(params.L,-1)==LUA_TSTRING)
 	{
 		p = lua_tolstring(params.L,-1,&lopt);
-		if (lopt)
+		if (p && lopt)
 		{
 			if (lopt>40 || ((sizeof(struct ip) + ((lopt+3)&~3)) > *len)) goto err;
 			memcpy(ip+1,p,lopt);
@@ -1991,7 +1991,7 @@ bool lua_reconstruct_dissect(int idx, uint8_t *buf, size_t *len, bool badsum, bo
 
 	lua_getfield(params.L,idx,"payload");
 	p = lua_tolstring(params.L,-1,&lpayload);
-	if (lpayload)
+	if (p && lpayload)
 	{
 		if (left<lpayload) goto err;
 		memcpy(data,p,lpayload);
