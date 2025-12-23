@@ -282,9 +282,9 @@ static bool auto_hostlist_retrans
 				if (dis->ip)
 				{
 					ip = (struct ip*)pkt; ip6=NULL;
-					pktlen = sizeof(struct iphdr) + sizeof(struct tcphdr);
+					pktlen = sizeof(struct ip) + sizeof(struct tcphdr);
 					*ip = *dis->ip;
-					ip->ip_hl = sizeof(struct iphdr)/4; // remove ip options
+					ip->ip_hl = sizeof(struct ip)/4; // remove ip options
 					ip->ip_len = htons(pktlen);
 					ip->ip_id=0;
 					tcp = (struct tcphdr*)(ip+1);
