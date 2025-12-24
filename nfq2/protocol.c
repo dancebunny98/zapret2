@@ -464,9 +464,10 @@ bool IsTLSRecordFull(const uint8_t *data, size_t len)
 }
 bool IsTLSHandshakeHello(const uint8_t *data, size_t len, uint8_t type, bool bPartialIsOK)
 {
-//	return len >= 1 && (type && data[0]==type || !type && (data[0]==0x01 || data[0]==0x02)) && (bPartialIsOK || IsTLSHandshakeFull(data,len));
-
-	return len >= 1 && (type && data[0]==type || !type && (data[0]==0x01 || data[0]==0x02)) && (bPartialIsOK || IsTLSHandshakeFull(data,len));
+	return len >= 6 &&
+		(type && data[0]==type || !type && (data[0]==0x01 || data[0]==0x02)) &&
+		data[4]==0x03 && data[5] <= 0x03 &&
+		(bPartialIsOK || IsTLSHandshakeFull(data,len));
 }
 bool IsTLSHandshakeClientHello(const uint8_t *data, size_t len, bool bPartialIsOK)
 {
