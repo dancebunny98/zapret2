@@ -2830,10 +2830,14 @@ bool lua_test_init_script_files(void)
 	{
 		if (str->str[0]=='@' && !file_open_test(str->str+1, O_RDONLY))
 		{
+#ifndef __CYGWIN__
 			int e = errno;
+#endif
 			DLOG_ERR("LUA file '%s' not accessible\n", str->str+1);
+#ifndef __CYGWIN__
 			if (e==EACCES)
-				DLOG_ERR("I drop my privileges and do not run Lua as root\ncheck file permissions and +x rights on all directories in the path\n", str->str+1);
+				DLOG_ERR("I drop my privileges and do not run Lua as root\ncheck file permissions and +x rights on all directories in the path\n");
+#endif
 			return false;
 		}
 	}
