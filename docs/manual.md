@@ -3524,7 +3524,7 @@ function tls_client_hello_clone(ctx, desync)
 
 - arg: [standard direction](#standard-direction)
 - arg: blob - имя блоба, получающего результат
-- arg: sni_del_ext - удалить sni extension. остальные параметры не Используются
+- arg: sni_del_ext - удалить sni extension. остальные параметры не используются
 - arg: sni_del - удалить все хосты
 - arg: sni_snt - заменить на всех уже имеющихся хостах поле "server name type"
 - arg: sni_snt_new - поле "server name type" для добавляемых хостов
