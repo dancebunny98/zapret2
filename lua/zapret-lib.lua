@@ -2261,8 +2261,12 @@ function tls_reconstruct(tdis)
 			if not rec.data then return nil end
 		end
 		tls = barray(tdis.rec, function(a) return (#a.data > 0) and (bu8(a.type) .. bu16(a.ver) .. bu16(#a.data) .. a.data) or "" end)
-	elseif tdis.handshake and tdis.handshake[1] then
-		tls = tdis.handshake[1].data
+	elseif tdis.handshake and #tdis.handshake==1 then
+		-- without record layer
+		for k,handshake in pairs(tdis.handshake) do
+			tls = handshake.data
+			break
+		end
 	end
 
 	return tls
