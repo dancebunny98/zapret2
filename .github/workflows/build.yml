@@ -553,6 +553,7 @@ jobs:
             rm -rf binaries/{android*,freebsd*,win*} \
                    init.d/{openrc,pfsense,runit,s6,systemd,windivert.filter.examples} \
                    nfq2 ip2net mdig docs Makefile
+            gzip lua/*.lua
           )
           tar --owner=0 --group=0 -czf ${{ env.repo_dir }}-openwrt-embedded.tar.gz ${{ env.repo_dir }}
 
