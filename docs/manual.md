@@ -2560,9 +2560,9 @@ function tls_reconstruct(tdis)
 7. Если есть record layer, реконструкция выполняется согласно длинам отдельных records. Если последняя часть не влезает, tls record расширяется под оставшиеся данные.
 8. При отсутствии изменений dissect+reconstruct дают бинарно идентичные блобы.
 
-Функции не работают с DTLS. В случае ошибки возвращается nil.
+Функции не работают с DTLS.
 
-`tls_dissect` возвращает таблицу - разбор raw строки tls со смещения offset (начиная с 1), `reconstruct_dissect` возвращает raw строку собранного разбора tdis.
+`tls_dissect` возвращает таблицу - разбор raw строки tls со смещения offset (начиная с 1), `reconstruct_dissect` возвращает raw строку собранного разбора tdis. В случае ошибки возвращается nil.
 
 Простейший способ получить образец диссекта : `--payload=tls_client_hello --lua-desync=luaexec:code="var_debug(tls_dissect(desync.reasm_data))"`.
 И вызвать TLS запрос.
