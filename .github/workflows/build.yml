@@ -75,11 +75,11 @@ jobs:
           sudo dpkg --add-architecture i386
           sudo apt update -qq
           if [[ "$ARCH" == lexra ]]; then
-            sudo apt install -y libcap-dev libc6:i386 zlib1g:i386
+            sudo apt install -y pigz libcap-dev libc6:i386 zlib1g:i386
             URL=https://github.com/$REPO/raw/refs/heads/master/$DIR.txz
           else
             # luajit buildvm requires 32 bit executable on host platform for 32 bit cross targets
-            sudo apt install -y libcap-dev libc6-dev gcc-multilib
+            sudo apt install -y pigz libcap-dev libc6-dev gcc-multilib
             URL=https://github.com/$REPO/releases/download/latest/$TOOL.tar.xz
           fi
           mkdir -p $HOME/tools
@@ -553,7 +553,7 @@ jobs:
             rm -rf binaries/{android*,freebsd*,win*} \
                    init.d/{openrc,pfsense,runit,s6,systemd,windivert.filter.examples} \
                    nfq2 ip2net mdig docs Makefile
-            gzip lua/*.lua
+            pigz -11 lua/*.lua
           )
           tar --owner=0 --group=0 -czf ${{ env.repo_dir }}-openwrt-embedded.tar.gz ${{ env.repo_dir }}
 
