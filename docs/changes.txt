@@ -156,3 +156,4 @@ v0.8.1
 
 * nfqws2: do not start if NFQWS2_COMPAT_VER unexpected
 * nfqws2: cache dns response IP addresses if --ipcache-hostname enabled
+* winws2: remove hardcoded filter for loopback
