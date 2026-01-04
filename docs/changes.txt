@@ -161,3 +161,4 @@ v0.8.1
 * init.d: fix broken @wanif/@wanif6 fill in sysv nft scheme
 * init.d: 80-dns-intercept
 * winws2: --wf-filter-loopback
+* blockcheck2: NOTEST_MISC_HTTP[S], NOTEST_SYNDATA_HTTP[S]
