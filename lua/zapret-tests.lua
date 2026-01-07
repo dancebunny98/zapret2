@@ -659,9 +659,10 @@ function test_resolve()
 	pos = resolve_pos(fake_default_tls,"tls_client_hello",m,true)
 	test_assert(pos)
 	print("resolve_pos tls : "..m.." : "..pos)
-	pos = resolve_pos(fake_default_tls,"tls_client_hello","method",true)
+	m = "method"
+	pos = resolve_pos(fake_default_tls,"tls_client_hello",m,true)
 	test_assert(not pos)
-	print("resolve_pos tls non-existent : "..tostring(pos))
+	print("resolve_pos tls non-existent : "..m.." : "..tostring(pos))
 
 	local host_pos = string.find(fake_default_http,"Host: ")+6-1
 	print("fake_default_http size "..#fake_default_http.." host="..host_pos)
