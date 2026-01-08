@@ -51,11 +51,6 @@ uint32_t net16_add(uint16_t netorder_value, uint16_t cpuorder_increment)
 	return htons(ntohs(netorder_value)+cpuorder_increment);
 }
 
-bool ip_has_df(const struct ip *ip)
-{
-	return ip && !!(ntohs(ip->ip_off) & IP_DF);
-}
-
 uint8_t *tcp_find_option(struct tcphdr *tcp, uint8_t kind)
 {
 	uint8_t *t = (uint8_t*)(tcp+1);
@@ -79,11 +74,6 @@ uint8_t *tcp_find_option(struct tcphdr *tcp, uint8_t kind)
 		}
 	}
 	return NULL;
-}
-uint32_t *tcp_find_timestamps(struct tcphdr *tcp)
-{
-	uint8_t *t = tcp_find_option(tcp, TCP_KIND_TS);
-	return (t && t[1]==10) ? (uint32_t*)(t+2) : NULL;
 }
 uint8_t tcp_find_scale_factor(const struct tcphdr *tcp)
 {

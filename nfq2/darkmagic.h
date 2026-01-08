@@ -80,14 +80,10 @@ void extract_ports(const struct tcphdr *tcphdr, const struct udphdr *udphdr, uin
 void extract_endpoints(const struct ip *ip,const struct ip6_hdr *ip6hdr,const struct tcphdr *tcphdr,const struct udphdr *udphdr, struct sockaddr_storage *src, struct sockaddr_storage *dst);
 bool extract_dst(const uint8_t *data, size_t len, struct sockaddr* dst);
 uint8_t *tcp_find_option(struct tcphdr *tcp, uint8_t kind);
-uint32_t *tcp_find_timestamps(struct tcphdr *tcp);
 uint8_t tcp_find_scale_factor(const struct tcphdr *tcp);
 uint16_t tcp_find_mss(const struct tcphdr *tcp);
 bool tcp_synack_segment(const struct tcphdr *tcphdr);
 bool tcp_syn_segment(const struct tcphdr *tcphdr);
-
-bool ip_has_df(const struct ip *ip);
-
 
 bool make_writeable_dir();
 bool ensure_file_access(const char *filename);
