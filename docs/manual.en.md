@@ -3,7 +3,7 @@
 # Contents
 
 - [Introduction](#introduction)
-- [Project ptructure](#project-structure)
+- [Project structure](#project-structure)
 - [Traffic processing scheme](#traffic-processing-scheme)
 - [Traffic interception from the OS Kernel](#traffic-interception-from-the-os-kernel)
   - [Traffic interception in the Linux Kernel](#traffic-interception-in-the-linux-kernel)
@@ -269,7 +269,7 @@
 
 zapret2 is a packet manipulator primarily designed to perform various autonomous real-time attacks on Deep Packet Inspection (DPI) systems. Its main objective is to bypass resource blocks or protocol restrictions. However, zapret2's capabilities are not limited to this; its architecture allows for other types of packet manipulation, such as bidirectional (client-server) protocol obfuscation to hide traffic from DPI, among other applications.
 
-# Project Structure
+# Project structure
 
 The core component of zapret2 is the **nfqws2** program (**dvtws2** on BSD, **winws2** on Windows). Written in C, it serves as the primary packet manipulator. It includes functions for packet interception, basic [filtering](#using-multiple-profiles), recognition of major protocols and payloads, support for host and IP [lists](#filtering-by-lists), [automated](#failure-detector-and-auto-hostlists) hostlists with block detection, a system of multiple [profiles](#using-multiple-profiles) (strategies), [raw packet transmission](#receiving-and-sending-packets), and other utility functions. However, it does not contain the logic for traffic modification itself; this is handled by Lua code called from [nfqws2](#nfqws2).
 
@@ -286,7 +286,7 @@ If a system does not meet these requirements, manual integration is possible.
 
 macOS is not supported because it lacks a suitable packet interception and management tool. The standard BSD tool `ipdivert` was removed from the kernel by the manufacturer.
 
-# Traffic Processing Scheme
+# Traffic processing scheme
 
 Networks operate with IP packets, making them the fundamental unit of processing. The OS kernel's network subsystem handles the receiving and sending of packets.
 `nfqws2` does not run in kernel mode; it is a user-mode process. Therefore, the first stage of processing involves passing packets from the OS kernel to the `nfqws2` process. All four interception methods provide some degree of packet filtering. Linux offers the most extensive capabilities.
