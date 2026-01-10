@@ -4335,7 +4335,7 @@ curl: (28) Connection timed out after 2002 milliseconds
 
 ### Standard tests
 
-#### The `standard` Test
+#### standard test
 
 This is the primary test, consisting of a series of subtests located in `blockcheck2.d/standard`. If you do not need certain tests, you can copy the `standard` directory to `my` and keep only the necessary scripts there. The `def.in` file is mandatory.
 
@@ -4384,7 +4384,7 @@ NOTEST_FAKE_HOSTFAKE_HTTPS=1 - disable https 60-fake-hostfake.sh tests
 NOTEST_QUIC=1 - disable 90-quic.sh tests
 ```
 
-#### Custom test
+#### custom test
 
 A simple tester that uses strategy lists from files. Strategies must be on separate lines; line breaks within a single strategy are not allowed. Separate lists are used for different protocols: `list_http.txt`, `list_https_tls12.txt`, `list_https_tls13.txt`, and `list_quic.sh`. These files support comments starting with `#`.
 
