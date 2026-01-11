@@ -2522,7 +2522,9 @@ function http_reconstruct_req(hdis, unixeol)
 Разборка HTTP запроса или ответа http. http представляет собой многострочный текст.
 Разборка представляет собой таблицу с вложенными подтаблицами.
 В заголовках выдаются позиции начала и конца названия заголовка и самого значения.
-Названия полей в таблице headers соответствуют названию заголовков в нижнем регисте. Все позиции - внутри строки http.
+Все позиции - внутри строки http.
+
+Для нахождения хедеров по названию используйте [array_field_search](#array_search) по полю "header_low", которое содержит название хедера в нижнем регистре.
 
 Реконструктор http запроса берет таблицу-разбор и воссоздает raw string. Параметр unixeol заменяет стандартный для http перевод сктроки 0D0A на 0A. Это нестандарт и ломает все сервера, кроме nginx.
 
@@ -2532,9 +2534,11 @@ function http_reconstruct_req(hdis, unixeol)
 .uri
   string /test_uri
 .headers
-  .content-length
+  .1
     .header
       string Content-Length
+    .header_low
+      string content-length
     .value
       string 330
     .pos_start
@@ -2545,9 +2549,11 @@ function http_reconstruct_req(hdis, unixeol)
       number 56
     .pos_value_start
       number 59
-  .host
+  .2
     .header
       string Host
+    .header_low
+      string host
     .value
       string testhost.com
     .pos_start
@@ -3552,6 +3558,7 @@ function http_methodeol(ctx, desync)
 - arg: [standard direction](#standard-direction)
 
 Вставляет '\r\n' перед методом, отрезая 2 последних символа из содержимого заголовка `User-Agent:`. Работает только на nginx, остальные сервера ломает.
+Если используется совместно с другими функциями http тамперинга, должен идти последним.
 
 ### http_unixeol
 

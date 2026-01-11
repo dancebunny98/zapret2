@@ -2356,7 +2356,8 @@ function http_reconstruct_req(hdis, unixeol)
 Parses an HTTP request or response. The `http` parameter is a multi-line string.
 The parsed result is a table with nested sub-tables.
 Headers provide the start and end positions for both the header name and the value itself.
-Field names in the `headers` table correspond to lowercase header names. All positions are relative to the `http` string.
+
+To find a header by name use [array_field_search](#array_search) with field name "header_low" which contains header name in lower case.
 
 The HTTP request reconstructor takes a parsed table and recreates the raw string. The `unixeol` parameter replaces the standard HTTP line ending (0D0A) with 0A. This is non-standard and will break almost all servers except for Nginx.
 
@@ -2366,9 +2367,11 @@ The HTTP request reconstructor takes a parsed table and recreates the raw string
 .uri
   string /test_uri
 .headers
-  .content-length
+  .1
     .header
       string Content-Length
+    .header_low
+      string content-length
     .value
       string 330
     .pos_start
@@ -2379,9 +2382,11 @@ The HTTP request reconstructor takes a parsed table and recreates the raw string
       number 56
     .pos_value_start
       number 59
-  .host
+  .2
     .header
       string Host
+    .header_low
+      string host
     .value
       string testhost.com
     .pos_start
@@ -3370,6 +3375,7 @@ function http_methodeol(ctx, desync)
 - arg: [standard direction](#standard-direction)
 
 Inserts `\r\n` before the method, stripping the last two characters from the `User-Agent:` header content. This only works with Nginx; it breaks other servers.
+If used with other http tampering functions should be the last !
 
 ### http_unixeol
 

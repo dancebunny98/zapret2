@@ -169,3 +169,8 @@ v0.8.1
 * nfqws2: ignore trailing spaces and tabs in hostlists and ipsets. "host.com   " or "1.2.3.4 " are ok now
 * init.d: 99-lan-filter custom script
 * mdig: --eagain, --eagain-delay
+
+0.8.4
+
+* winws2: fix loopback large packets processing (up to 64K)
+* zapret-lib, zapret-antidpi: use numeric indexes in http dissects

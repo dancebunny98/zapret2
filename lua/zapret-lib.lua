@@ -579,7 +579,6 @@ function array_search(a, v)
 			return k
 		end
 	end
-	return nil
 end
 -- linear search array a for a[index].f==v. return index
 function array_field_search(a, f, v)
@@ -588,7 +587,6 @@ function array_field_search(a, f, v)
 			return k
 		end
 	end
-	return nil
 end
 
 -- find pos of the next eol and pos of the next non-eol character after eol
@@ -1568,7 +1566,7 @@ function http_dissect_headers(http, pos)
 		end
 		header,value,pos_endheader,pos_startvalue = http_dissect_header(header)
 		if header then
-			headers[string.lower(header)] = { header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
+			headers[#headers+1] = { header_low = string.lower(header), header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
 		end
 		pos=pnext
 	end
@@ -1619,11 +1617,16 @@ function http_dissect_reply(http)
 	code = tonumber(string.sub(http,10,pos-1))
 	if not code then return nil end
 	pos = find_next_line(http,pos)
-	return { code = code, headers = http_dissect_headers(http,pos) }
+	local hdis = { code = code }
+	hdis.headers, hdis.pos_headers_end = http_dissect_headers(http,pos)
+	if hdis.pos_headers_end then
+		hdis.body = string.sub(http, hdis.pos_headers_end)
+	end
+	return hdis
 end
 function http_reconstruct_headers(headers, unixeol)
 	local eol = unixeol and "\n" or "\r\n"
-	return headers and btable(headers, function(a) return a.header..": "..a.value..eol end) or ""
+	return headers and bitable(headers, function(a) return a.header..": "..a.value..eol end) or ""
 end
 function http_reconstruct_req(hdis, unixeol)
 	local eol = unixeol and "\n" or "\r\n"
