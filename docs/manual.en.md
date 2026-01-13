@@ -5124,7 +5124,10 @@ There are several options :
 
 1. Take `windivert64.sys` and `windivert.dll` version `2.2.0-C` or `2.2.0-D` from [here](https://reqrypt.org/download) and replace existing files.
 
-2. [Hack ESU](https://hackandpwn.com/windows-7-esu-patching)
+2. Hack ESU
+
+[Link 1](https://hackandpwn.com/windows-7-esu-patching)
+[Link 2](http://www.bifido.net/tweaks-and-scripts/8-extended-security-updates-installer.html
 
 3. Use "BypassESU" patcher. Google it by name.
 
