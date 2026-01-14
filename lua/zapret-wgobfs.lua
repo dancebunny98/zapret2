@@ -7,6 +7,7 @@
 -- arg : secret - shared secret. any string. must be the same on both peers
 -- arg : padmin - min random garbage bytes. 0 by default
 -- arg : padmax - max random garbage bytes. 16 by default
+-- NOTE : this function does not depend on zapret-lib.lua and should not be run under orchestrator (uses direct instance_cutoff)
 function wgobfs(ctx, desync)
 	local padmin = desync.arg.padmin and tonumber(desync.arg.padmin) or 0
 	local padmax = desync.arg.padmax and tonumber(desync.arg.padmax) or 16
