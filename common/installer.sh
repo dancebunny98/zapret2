@@ -256,7 +256,7 @@ check_system()
 
 get_free_space_mb()
 {
-    df -m $PWD | awk '/[0-9]%/{print $(NF-2)}'
+    df -m "$1" | awk '/[0-9]%/{print $(NF-2)}'
 }
 get_ram_kb()
 {
@@ -779,7 +779,9 @@ select_fwtype()
 		echo WARNING ! if you need large lists it may be necessary to fall back to iptables+ipset firewall
 	}
 	echo select firewall type :
-	ask_list FWTYPE "iptables nftables" "$FWTYPE" && write_config_var FWTYPE
+	ask_list FWTYPE "iptables nftables" "$FWTYPE"
+	# always write config var to prevent auto discovery every time
+	write_config_var FWTYPE
 }
 
 dry_run_nfqws_()

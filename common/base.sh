@@ -95,7 +95,7 @@ end_with_newline()
 }
 trim()
 {
-	awk '{gsub(/^ +| +$/,"")}1'
+	awk '{gsub(/^[ \t]+|[ \t]+$/,"")}1'
 }
 split_by_separator()
 {
@@ -119,7 +119,7 @@ dir_is_not_empty()
 	# $1 - directory
 	local n
 	[ -d "$1" ] || return 1
-	n=$(ls "$1" | wc -c | xargs)
+	n=$(ls -A "$1" | wc -c | xargs)
 	[ "$n" != 0 ]
 }
 
@@ -343,7 +343,7 @@ setup_md5()
 {
 	[ -n "$MD5" ] && return
 	MD5=md5sum
-	exists $MD5 || MD5=md5
+	exists $MD5 || MD5="md5 -q"
 }
 
 md5f()
@@ -394,9 +394,9 @@ shell_name()
 process_exists()
 {
 	if exists pgrep; then
-		pgrep ^$1$ >/dev/null
+		pgrep "^$1$" >/dev/null
 	elif exists pidof; then
-		pidof $1 >/dev/null
+		pidof "$1" >/dev/null
 	else
 		return 1
 	fi 

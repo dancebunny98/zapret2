@@ -37,7 +37,7 @@ ask_list()
 	local M_DEFAULT
 	eval M_DEFAULT="\$$1"
 	local M_ALL=$M_DEFAULT
-	local M="" m M_OLD
+	local M="" m
 
 	[ -n "$3" ] && { find_str_in_list "$M_DEFAULT" "$2" || M_DEFAULT="$3" ;}
 

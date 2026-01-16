@@ -77,8 +77,7 @@ nft_rule_exists()
 	nft_add_rule ruletest "$2"
 	rule=$(nft list chain inet $ZAPRET_NFT_TABLE ruletest | sed -n '3s/\t//gp')
 	nft_flush_chain ruletest
-	local yes=$(nft list chain inet $ZAPRET_NFT_TABLE $1 | sed -n "s/^[\t]*$rule\$/1/p")
-	[ -n "$yes" ]
+	nft list chain inet $ZAPRET_NFT_TABLE $1 | trim | grep -qxF "$rule"
 }
 
 nft_del_all_chains_from_table()

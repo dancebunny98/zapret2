@@ -2027,7 +2027,7 @@ bool make_writeable_dir()
 		char testfile[PATH_MAX];
 		snprintf(testfile,sizeof(testfile),"%s/test_XXXXXX",wrdir);
 		int fd = mkstemp(testfile);
-		if (fd>0)
+		if (fd>=0)
 		{
 			close(fd);
 			unlink(testfile);

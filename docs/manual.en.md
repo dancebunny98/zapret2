@@ -3149,6 +3149,10 @@ function rawsend_dissect_segmented(desync, dis, mss, options)
 Sends dissect `dis` with automatic TCP segmentation based on MSS, applying `options.fooling` and `options.ipid`.
 The `ipid` is applied to each fragment. Segmentation is not possible for UDP and is not performed.
 
+- if dis is nil, desync.dis is used.
+- if mss is nil, desync.tcp_mss is used.
+- if options is nil, options are created from desync.arg
+
 ### rawsend_payload_segmented
 
 ```

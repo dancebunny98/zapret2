@@ -3328,6 +3328,10 @@ function rawsend_dissect_segmented(desync, dis, mss, options)
 Отправить диссект dis с автоматической tcp сегментацией на базе mss с применением `options.fooling` и `options.ipid`.
 ipid применяется к каждому фрагменту. Для udp сегментация невозможна и не выполняется.
 
+- Если dis отсутствует, берется desync.dis.
+- Если mss отсутствует, берется desync.tcp_mss.
+- Если options отсутствуют, они создаются на базе desync.arg.
+
 ### rawsend_payload_segmented
 
 ```

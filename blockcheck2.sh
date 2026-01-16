@@ -240,7 +240,7 @@ mdig_vars()
 	# $1 - ip version 4/6
 	# $2 - hostname
 
-	hostvar=$(echo $2 | sed -e 's/[\./?&#@%*$^:~=!()+-]/_/g')
+	hostvar=$(echo $2 | sed -e 's/[\./?&#@%*$^:~=!()+-]/_/g' | tr 'A-Z' 'a-z')
 	cachevar=DNSCACHE_${hostvar}_$1
 	countvar=${cachevar}_COUNT
 	eval count=\$${countvar}
@@ -297,7 +297,7 @@ mdig_resolve_all()
 	mdig_vars "$1" "$sdom"
 	if [ -n "$count" ]; then
 		n=0
-		while [ "$n" -le $count ]; do
+		while [ "$n" -lt $count ]; do
 			eval ip__=\$${cachevar}_$n
 			if [ -n "$ips__" ]; then
 				ips__="$ips__ $ip__"
@@ -406,10 +406,10 @@ zp_already_running()
 {
 	case "$UNAME" in
 		CYGWIN)
-			win_process_exists $PKTWSD || win_process_exists winws || win_process_exists goodbyedpi
+			win_process_exists $PKTWSD || win_process_exists winws || win_process_exists winws2 || win_process_exists goodbyedpi
 			;;
 		*)
-			process_exists $PKTWSD || process_exists tpws || process_exists nfqws
+			process_exists $PKTWSD || process_exists tpws || process_exists nfqws || process_exists nfqws2
 	esac
 }
 check_already()
@@ -633,11 +633,11 @@ curl_with_dig()
 	# $2 - domain name
 	# $3 - port
 	# $4+ - curl params
-	local dom=$2 port=$3
+	local dom="$2" port=$3
 	local sdom suri ip
 
 	split_by_separator "$dom" / sdom suri
-	mdig_resolve $1 ip $sdom
+	mdig_resolve $1 ip "$sdom"
 	shift ; shift ; shift
 	if [ -n "$ip" ]; then
 		curl_with_subst_ip "$sdom" "$port" "$ip" "$@"
@@ -652,12 +652,12 @@ curl_probe()
 	# $3 - port
 	# $4 - subst ip
 	# $5+ - curl params
-	local ipv=$1 dom=$2 port=$3 subst=$4
+	local ipv=$1 dom="$2" port=$3 subst=$4
 	shift; shift; shift; shift
 	if [ -n "$subst" ]; then
-		curl_with_subst_ip $dom $port $subst "$@"
+		curl_with_subst_ip "$dom" $port $subst "$@"
 	else
-		curl_with_dig $ipv $dom $port "$@"
+		curl_with_dig $ipv "$dom" $port "$@"
 	fi
 }
 curl_test_http()
@@ -668,7 +668,7 @@ curl_test_http()
 	# $4 - "detail" - detail info
 
 	local code loc hdrt="${HDRTEMP}_${!:-$$}.txt" dom="$(tolower "$2")"
-	curl_probe $1 $2 $HTTP_PORT "$3" -SsD "$hdrt" -A "$USER_AGENT" --max-time $CURL_MAX_TIME $CURL_OPT "http://$2" -o /dev/null 2>&1 || {
+	curl_probe $1 "$2" $HTTP_PORT "$3" -SsD "$hdrt" -A "$USER_AGENT" --max-time $CURL_MAX_TIME $CURL_OPT "http://$2" -o /dev/null 2>&1 || {
 		code=$?
 		rm -f "$hdrt"
 		return $code
@@ -680,6 +680,7 @@ curl_test_http()
 		code=$(hdrfile_http_code "$hdrt")
 		[ "$code" = 301 -o "$code" = 302 -o "$code" = 307 -o "$code" = 308 ] && {
 			loc=$(hdrfile_location "$hdrt")
+			split_by_separator "$dom" / dom
 			tolower "$loc" | grep -qE "^https?://.*$dom(/|$)" ||
 			tolower "$loc" | grep -vqE '^https?://' || {
 				echo suspicious redirection $code to : $loc
@@ -703,7 +704,7 @@ curl_test_https_tls12()
 	# $3 - subst ip
 
 	# do not use tls 1.3 to make sure server certificate is not encrypted
-	curl_probe $1 $2 $HTTPS_PORT "$3" $HTTPS_HEAD -Ss -A "$USER_AGENT" --max-time $CURL_MAX_TIME $CURL_OPT --tlsv1.2 $TLSMAX12 "https://$2" -o /dev/null 2>&1
+	curl_probe $1 "$2" $HTTPS_PORT "$3" $HTTPS_HEAD -Ss -A "$USER_AGENT" --max-time $CURL_MAX_TIME $CURL_OPT --tlsv1.2 $TLSMAX12 "https://$2" -o /dev/null 2>&1
 }
 curl_test_https_tls13()
 {
@@ -712,7 +713,7 @@ curl_test_https_tls13()
 	# $3 - subst ip
 
 	# force TLS1.3 mode
-	curl_probe $1 $2 $HTTPS_PORT "$3" $HTTPS_HEAD -Ss -A "$USER_AGENT" --max-time $CURL_MAX_TIME $CURL_OPT --tlsv1.3 $TLSMAX13 "https://$2" -o /dev/null 2>&1
+	curl_probe $1 "$2" $HTTPS_PORT "$3" $HTTPS_HEAD -Ss -A "$USER_AGENT" --max-time $CURL_MAX_TIME $CURL_OPT --tlsv1.3 $TLSMAX13 "https://$2" -o /dev/null 2>&1
 }
 
 curl_test_http3()
@@ -721,7 +722,7 @@ curl_test_http3()
 	# $2 - domain name
 
 	# force QUIC only mode without tcp
-	curl_with_dig $1 $2 $QUIC_PORT $HTTPS_HEAD -Ss -A "$USER_AGENT" --max-time $CURL_MAX_TIME_QUIC --http3-only $CURL_OPT "https://$2" -o /dev/null 2>&1
+	curl_with_dig $1 "$2" $QUIC_PORT $HTTPS_HEAD -Ss -A "$USER_AGENT" --max-time $CURL_MAX_TIME_QUIC --http3-only $CURL_OPT "https://$2" -o /dev/null 2>&1
 }
 
 ipt_aux_scheme()
@@ -990,7 +991,7 @@ curl_test()
 	if [ "$PARALLEL" = 1 ]; then
 		rm -f "${PARALLEL_OUT}"*
 		for n in $(seq -s ' ' 1 $REPEATS); do
-			$1 "$IPV" $2 $3 "$4" >"${PARALLEL_OUT}_$n" &
+			$1 "$IPV" "$2" $3 "$4" >"${PARALLEL_OUT}_$n" &
 			pids="${pids:+$pids }$!"
 		done
 		n=1
@@ -1009,7 +1010,7 @@ curl_test()
 		while [ $n -lt $REPEATS ]; do
 			n=$(($n+1))
 			[ $REPEATS -gt 1 ] && printf "[attempt $n] "
-			if $1 "$IPV" $2 $3 "$4" ; then
+			if $1 "$IPV" "$2" $3 "$4" ; then
 				[ $REPEATS -gt 1 ] && echo 'AVAILABLE'
 			else
 				code=$?
@@ -1034,7 +1035,7 @@ ws_curl_test()
 	# $2 - test function
 	# $3 - domain
 	# $4,$5,$6, ... - ws params
-	local code ws_start=$1 testf=$2 dom=$3
+	local code ws_start=$1 testf=$2 dom="$3"
 
 	[ "$SIMULATE" = 1 ] && {
 		n=$(random 0 99)
@@ -1050,7 +1051,7 @@ ws_curl_test()
 	shift
 	shift
 	$ws_start "$@"
-	curl_test $testf $dom
+	curl_test $testf "$dom"
 	code=$?
 	ws_kill
 	return $code
@@ -1060,11 +1061,11 @@ pktws_curl_test()
 	# $1 - test function
 	# $2 - domain
 	# $3,$4,$5, ... - nfqws/dvtws params
-	local testf=$1 dom=$2 strategy code
+	local testf=$1 dom="$2" strategy code
 
 	shift; shift;
 	echo - $testf ipv$IPV $dom : $PKTWSD ${WF:+$WF }${PKTWS_EXTRA_PRE:+$PKTWS_EXTRA_PRE }${PKTWS_EXTRA_PRE_1:+"$PKTWS_EXTRA_PRE_1" }${PKTWS_EXTRA_PRE_2:+"$PKTWS_EXTRA_PRE_2" }${PKTWS_EXTRA_PRE_3:+"$PKTWS_EXTRA_PRE_3" }${PKTWS_EXTRA_PRE_4:+"$PKTWS_EXTRA_PRE_4" }${PKTWS_EXTRA_PRE_5:+"$PKTWS_EXTRA_PRE_5" }${PKTWS_EXTRA_PRE_6:+"$PKTWS_EXTRA_PRE_6" }${PKTWS_EXTRA_PRE_7:+"$PKTWS_EXTRA_PRE_7" }${PKTWS_EXTRA_PRE_8:+"$PKTWS_EXTRA_PRE_8" }${PKTWS_EXTRA_PRE_9:+"$PKTWS_EXTRA_PRE_9" }$@${PKTWS_EXTRA_POST:+ $PKTWS_EXTRA_POST}${PKTWS_EXTRA_POST_1:+ "$PKTWS_EXTRA_POST_1"}${PKTWS_EXTRA_POST_2:+ "$PKTWS_EXTRA_POST_2"}${PKTWS_EXTRA_POST_3:+ "$PKTWS_EXTRA_POST_3"}${PKTWS_EXTRA_POST_4:+ "$PKTWS_EXTRA_POST_4"}${PKTWS_EXTRA_POST_5:+ "$PKTWS_EXTRA_POST_5"}${PKTWS_EXTRA_POST_6:+ "$PKTWS_EXTRA_POST_6"}${PKTWS_EXTRA_POST_7:+ "$PKTWS_EXTRA_POST_7"}${PKTWS_EXTRA_POST_8:+ "$PKTWS_EXTRA_POST_8"}${PKTWS_EXTRA_POST_9:+ "$PKTWS_EXTRA_POST_9"}
-	ws_curl_test pktws_start $testf $dom ${PKTWS_EXTRA_PRE:+$PKTWS_EXTRA_PRE }${PKTWS_EXTRA_PRE_1:+"$PKTWS_EXTRA_PRE_1" }${PKTWS_EXTRA_PRE_2:+"$PKTWS_EXTRA_PRE_2" }${PKTWS_EXTRA_PRE_3:+"$PKTWS_EXTRA_PRE_3" }${PKTWS_EXTRA_PRE_4:+"$PKTWS_EXTRA_PRE_4" }${PKTWS_EXTRA_PRE_5:+"$PKTWS_EXTRA_PRE_5" }${PKTWS_EXTRA_PRE_6:+"$PKTWS_EXTRA_PRE_6" }${PKTWS_EXTRA_PRE_7:+"$PKTWS_EXTRA_PRE_7" }${PKTWS_EXTRA_PRE_8:+"$PKTWS_EXTRA_PRE_8" }${PKTWS_EXTRA_PRE_9:+"$PKTWS_EXTRA_PRE_9" }"$@"${PKTWS_EXTRA_POST:+ $PKTWS_EXTRA_POST}${PKTWS_EXTRA_POST_1:+ "$PKTWS_EXTRA_POST_1"}${PKTWS_EXTRA_POST_2:+ "$PKTWS_EXTRA_POST_2"}${PKTWS_EXTRA_POST_3:+ "$PKTWS_EXTRA_POST_3"}${PKTWS_EXTRA_POST_4:+ "$PKTWS_EXTRA_POST_4"}${PKTWS_EXTRA_POST_5:+ "$PKTWS_EXTRA_POST_5"}${PKTWS_EXTRA_POST_6:+ "$PKTWS_EXTRA_POST_6"}${PKTWS_EXTRA_POST_7:+ "$PKTWS_EXTRA_POST_7"}${PKTWS_EXTRA_POST_8:+ "$PKTWS_EXTRA_POST_8"}${PKTWS_EXTRA_POST_9:+ "$PKTWS_EXTRA_POST_9"}
+	ws_curl_test pktws_start $testf "$dom" ${PKTWS_EXTRA_PRE:+$PKTWS_EXTRA_PRE }${PKTWS_EXTRA_PRE_1:+"$PKTWS_EXTRA_PRE_1" }${PKTWS_EXTRA_PRE_2:+"$PKTWS_EXTRA_PRE_2" }${PKTWS_EXTRA_PRE_3:+"$PKTWS_EXTRA_PRE_3" }${PKTWS_EXTRA_PRE_4:+"$PKTWS_EXTRA_PRE_4" }${PKTWS_EXTRA_PRE_5:+"$PKTWS_EXTRA_PRE_5" }${PKTWS_EXTRA_PRE_6:+"$PKTWS_EXTRA_PRE_6" }${PKTWS_EXTRA_PRE_7:+"$PKTWS_EXTRA_PRE_7" }${PKTWS_EXTRA_PRE_8:+"$PKTWS_EXTRA_PRE_8" }${PKTWS_EXTRA_PRE_9:+"$PKTWS_EXTRA_PRE_9" }"$@"${PKTWS_EXTRA_POST:+ $PKTWS_EXTRA_POST}${PKTWS_EXTRA_POST_1:+ "$PKTWS_EXTRA_POST_1"}${PKTWS_EXTRA_POST_2:+ "$PKTWS_EXTRA_POST_2"}${PKTWS_EXTRA_POST_3:+ "$PKTWS_EXTRA_POST_3"}${PKTWS_EXTRA_POST_4:+ "$PKTWS_EXTRA_POST_4"}${PKTWS_EXTRA_POST_5:+ "$PKTWS_EXTRA_POST_5"}${PKTWS_EXTRA_POST_6:+ "$PKTWS_EXTRA_POST_6"}${PKTWS_EXTRA_POST_7:+ "$PKTWS_EXTRA_POST_7"}${PKTWS_EXTRA_POST_8:+ "$PKTWS_EXTRA_POST_8"}${PKTWS_EXTRA_POST_9:+ "$PKTWS_EXTRA_POST_9"}
 
 	code=$?
 	[ "$code" = 0 ] && {
@@ -1086,11 +1087,11 @@ xxxws_curl_test_update()
 	# $2 - test function
 	# $3 - domain
 	# $4,$5,$6, ... - nfqws2/dvtws2 params
-	local code xxxf=$1 testf=$2 dom=$3
+	local code xxxf=$1 testf=$2 dom="$3"
 	shift
 	shift
 	shift
-	$xxxf $testf $dom "$@"
+	$xxxf $testf "$dom" "$@"
 	code=$?
 	[ $code = 0 ] && strategy="${strategy:-$@}"
 	return $code
