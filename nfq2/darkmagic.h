@@ -136,7 +136,7 @@ bool proto_check_ipv4(const uint8_t *data, size_t len);
 void proto_skip_ipv4(const uint8_t **data, size_t *len);
 bool proto_check_ipv6(const uint8_t *data, size_t len);
 bool proto_check_ipv6_payload(const uint8_t *data, size_t len);
-void proto_skip_ipv6(const uint8_t **data, size_t *len, uint8_t *proto_type, const uint8_t **last_header_type);
+void proto_skip_ipv6(const uint8_t **data, size_t *len, uint8_t *proto_type);
 uint8_t *proto_find_ip6_exthdr(struct ip6_hdr *ip6, size_t len, uint8_t proto);
 bool proto_check_tcp(const uint8_t *data, size_t len);
 void proto_skip_tcp(const uint8_t **data, size_t *len);
