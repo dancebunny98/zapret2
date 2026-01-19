@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <libgen.h>
+#include <errno.h>
 
 #define UNIQ_SORT \
 { \
@@ -125,7 +126,26 @@ bool load_file(const char *filename, off_t offset, void *buffer, size_t *buffer_
 	fclose(F);
 	return true;
 }
+bool save_file(const char *filename, const void *buffer, size_t buffer_size)
+{
+	FILE *F;
 
+	F = fopen(filename, "wb");
+	if (!F) return false;
+	size_t wr = fwrite(buffer, 1, buffer_size, F);
+	if (ferror(F))
+	{
+		fclose(F);
+		return false;
+	}
+	fclose(F);
+	if (wr!=buffer_size)
+	{
+		errno = EIO;
+		return false;
+	}
+	return true;
+}
 bool append_to_list_file(const char *filename, const char *s)
 {
 	FILE *F = fopen(filename,"at");

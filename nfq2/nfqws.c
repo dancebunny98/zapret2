@@ -2059,6 +2059,11 @@ int main(int argc, char **argv)
 			break;
 		case IDX_LUA_GC:
 			params.lua_gc = atoi(optarg);
+			if (params.lua_gc<0)
+			{
+				DLOG_ERR("lua-gc must be >=0\n");
+				exit_clean(1);
+			}
 			break;
 		case IDX_HOSTLIST:
 			if (bSkip) break;
