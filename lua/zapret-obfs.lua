@@ -153,3 +153,105 @@ function ippxor(ctx, desync)
 
 	return VERDICT_MODIFY + VERDICT_PRESERVE_NEXT
 end
+
+-- test case:
+--  endpoint1:
+--   nfqws2 --lua-init=@/opt/zapret2/lua/zapret-obfs.lua --in-range=a --lua-desync=udp2icmp
+--   nft add rule inet ztest2 post meta mark and 0x40000000 == 0 udp dport 12345 queue num 200 bypass
+--   nft add rule inet ztest2 pre meta mark and 0x40000000 == 0 meta l4proto "{icmp,icmpv6}" queue num 200 bypass
+--  endpoint2:
+--   nfqws2 --lua-init=@/opt/zapret2/lua/zapret-obfs.lua --in-range=a --lua-desync=udp2icmp --server
+--   nft add rule inet ztest2 post meta mark and 0x40000000 == 0 udp sport 12345 queue num 200 bypass
+--   nft add rule inet ztest2 pre meta mark and 0x40000000 == 0 meta l4proto "{icmp,icmpv6}" queue num 200 bypass
+-- packs udp datagram to icmp message without changing packet size
+-- function keeps icmp identifier as client's (sport xor dport) to help traverse NAT (it won't help if NAT changes id)
+-- one end must be in server mode, another - in client mode
+-- arg : ctype - client icmp type
+-- arg : ccode - client icmp code
+-- arg : stype - server icmp type
+-- arg : scode - server icmp code
+-- arg : dataxor - blob to xor udp payload
+-- arg : server=[0|1] - override server mode. by default use "--server" nfqws2 parameter
+function udp2icmp(ctx, desync)
+	local dataxor
+	local bserver = desync.arg.server and (desync.arg.server=="1") or b_server
+
+	local function one_byte_arg(name)
+		if desync.arg[name] then
+			local v = tonumber(desync.arg[name])
+			if v<0 or v>0xFF then
+				error("udp2icmp: invalid type or code value. should be 0..255")
+			end
+			return v
+		end
+	end
+	local function ictype(send)
+		local ctype = one_byte_arg("ctype")
+		local stype = one_byte_arg("stype")
+		if logical_xor(ctype,stype) then
+			error("udp2icmp: ctype and stype must be both set or not set")
+		end
+		if not ctype then
+			ctype = desync.dis.ip6 and ICMP6_ECHO_REQUEST or ICMP_ECHO
+			stype = desync.dis.ip6 and ICMP6_ECHO_REPLY or ICMP_ECHOREPLY
+		end
+		return logical_xor(send,bserver) and ctype or stype
+	end
+	local function iccode(send)
+		local ccode = one_byte_arg("ccode")
+		local scode = one_byte_arg("scode")
+		if logical_xor(ccode,scode) then
+			error("udp2icmp: ccode and scode must be both set or not set")
+		end
+		if not ccode then
+			ccode = 0
+			scode = 0
+		end
+		return logical_xor(send,bserver) and ccode or scode
+	end
+	local function plxor()
+		if dataxor then
+			DLOG("udp2icmp: dataxor")
+			desync.dis.payload = bxor(desync.dis.payload, pattern(dataxor,1,#desync.dis.payload))
+		end
+	end
+
+	if desync.arg.dataxor then
+		dataxor = blob(desync,desync.arg.dataxor)
+		if #dataxor==0 then
+			error("udp2icmp: empty dataxor value")
+		end
+	end
+
+	if desync.dis.udp then
+		plxor()
+		if b_debug then -- save some cpu
+			DLOG("udp2icmp: udp => icmp sport="..desync.dis.udp.uh_sport.." dport="..desync.dis.udp.uh_dport.." size="..#desync.dis.payload)
+		end
+		desync.dis.icmp = {
+			icmp_type = ictype(true),
+			icmp_code = iccode(true),
+			icmp_data = u32(
+				bu16(bitxor(desync.dis.udp.uh_sport,desync.dis.udp.uh_dport))..
+				(bserver and bu16(desync.dis.udp.uh_sport) or bu16(desync.dis.udp.uh_dport)))
+		}
+		desync.dis.udp = nil
+		fix_ip_proto(desync.dis)
+		return VERDICT_MODIFY
+	elseif desync.dis.icmp and desync.dis.icmp.icmp_type==ictype(false) and desync.dis.icmp.icmp_code==iccode(false) then
+		local pl = bitand(desync.dis.icmp.icmp_data,0xFFFF)
+		local pm = bitxor(bitrshift(desync.dis.icmp.icmp_data,16),pl)
+		desync.dis.udp = {
+			uh_sport = bserver and pm or pl,
+			uh_dport = bserver and pl or pm,
+			uh_ulen = UDP_BASE_LEN + #desync.dis.payload
+		}
+		desync.dis.icmp = nil
+		fix_ip_proto(desync.dis)
+		if b_debug then -- save some cpu
+			DLOG("udp2icmp: icmp => udp sport="..desync.dis.udp.uh_sport.." dport="..desync.dis.udp.uh_dport.." size="..#desync.dis.payload)
+		end
+		plxor()
+		return VERDICT_MODIFY
+	end
+end
