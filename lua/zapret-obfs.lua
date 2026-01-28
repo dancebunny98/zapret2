@@ -9,6 +9,11 @@
 -- arg : padmax - max random garbage bytes. 16 by default
 -- NOTE : this function does not depend on zapret-lib.lua and should not be run under orchestrator (uses direct instance_cutoff)
 function wgobfs(ctx, desync)
+	if not desync.dis.udp then
+		instance_cutoff(ctx)
+		return
+	end
+
 	local padmin = desync.arg.padmin and tonumber(desync.arg.padmin) or 0
 	local padmax = desync.arg.padmax and tonumber(desync.arg.padmax) or 16
 	local function genkey()
@@ -37,10 +42,6 @@ function wgobfs(ctx, desync)
 		end
 	end
 
-	if not desync.dis.udp then
-		instance_cutoff(ctx)
-		return
-	end
 	if not desync.arg.secret or #desync.arg.secret==0 then
 		error("wgobfs: secret required")
 	end
@@ -164,7 +165,7 @@ end
 --   nft add rule inet ztest2 post meta mark and 0x40000000 == 0 udp sport 12345 queue num 200 bypass
 --   nft add rule inet ztest2 pre meta mark and 0x40000000 == 0 meta l4proto "{icmp,icmpv6}" queue num 200 bypass
 -- packs udp datagram to icmp message without changing packet size
--- function keeps icmp identifier as client's (sport xor dport) to help traverse NAT (it won't help if NAT changes id)
+-- function keeps icmp identifier as (sport xor dport) to help traverse NAT (it won't help if NAT changes id)
 -- one end must be in server mode, another - in client mode
 -- arg : ctype - client icmp type
 -- arg : ccode - client icmp code
