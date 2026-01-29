@@ -2,6 +2,8 @@
 
 # Contents
 
+- [This manual is mostly AI translated from russian](#this-manual-is-mostly-ai-translated-from-russian)
+- [Contents](#contents)
 - [Introduction](#introduction)
 - [Project structure](#project-structure)
 - [Traffic processing scheme](#traffic-processing-scheme)
@@ -31,9 +33,9 @@
     - [Passing blobs](#passing-blobs)
     - [In-profile filters](#in-profile-filters)
     - [Typical instance invocation scheme within a profile](#typical-instance-invocation-scheme-within-a-profile)
-  - [Lua Function Prototype](#lua-function-prototype)
+  - [Lua function prototype](#lua-function-prototype)
     - [Structure of the desync table](#structure-of-the-desync-table)
-    - [Dissect Structure](#dissect-structure)
+    - [Dissect structure](#dissect-structure)
     - [Handling multi-packet payloads](#handling-multi-packet-payloads)
     - [The track table structure](#the-track-table-structure)
 - [nfqws2 C interface](#nfqws2-c-interface)
@@ -51,7 +53,7 @@
       - [uXadd](#uxadd)
     - [Integer division](#integer-division)
       - [divint](#divint)
-    - [Random data generation](#random-data-generation)
+    - [Random Data Generation](#random-data-generation)
       - [brandom](#brandom)
     - [Parsing](#parsing)
       - [parse\_hex](#parse_hex)
@@ -77,11 +79,11 @@
       - [reconstruct\_dissect](#reconstruct_dissect)
       - [reconstruct\_hdr](#reconstruct_hdr)
       - [csum\_fix](#csum_fix)
-    - [Receiving and sending packets](#receiving-and-sending-packets)
+    - [Receiving and sending Packets](#receiving-and-sending-packets)
       - [rawsend](#rawsend)
       - [raw\_packet](#raw_packet)
     - [Working with payloads](#working-with-payloads)
-      - [markers](#markers)
+      - [Markers](#markers)
       - [resolve\_pos](#resolve_pos)
     - [Instance execution management](#instance-execution-management)
       - [instance\_cutoff](#instance_cutoff)
@@ -124,7 +126,7 @@
     - [genhost](#genhost)
     - [host\_ip](#host_ip)
   - [File name and path operations](#file-name-and-path-operations)
-  - [Reading and writing files](#reading-and-writing-files)
+  - [Reading and writing Files](#reading-and-writing-files)
   - [Data compression](#data-compression)
   - [autottl](#autottl)
   - [Operations with dissects](#operations-with-dissects)
@@ -153,7 +155,7 @@
     - [plan\_clear](#plan_clear)
     - [orchestrate](#orchestrate)
     - [replay\_execution\_plan](#replay_execution_plan)
-- [zapret-antidpi.lua: DPI attack program library](#zapret-antidpilua-dpi-attack-program-library)
+- [zapret-antidpi.lua DPI attack program library](#zapret-antidpilua-dpi-attack-program-library)
   - [Standard parameter sets](#standard-parameter-sets)
     - [standard direction](#standard-direction)
     - [standard payload](#standard-payload)
@@ -189,7 +191,6 @@
   - [Other Functions](#other-functions)
     - [synack](#synack)
     - [synack\_split](#synack_split)
-
 - [zapret-auto.lua automation and orchestration library](#zapret-autolua-automation-and-orchestration-library)
   - [State storage](#state-storage)
     - [automate\_conn\_record](#automate_conn_record)
@@ -231,7 +232,7 @@
   - [Shell variables](#shell-variables)
   - [Why it won't open](#why-it-wont-open)
 - [Startup scripts](#startup-scripts)
-  - [Config file](#config-file)
+  - [config file](#config-file)
   - [List management system](#list-management-system)
     - [Standard list files](#standard-list-files)
     - [ipset scripts](#ipset-scripts)
@@ -246,7 +247,7 @@
       - [get\_refilter\_\*.sh](#get_refilter_sh)
       - [get\_reestr\_\*.sh](#get_reestr_sh)
     - [ipban system](#ipban-system)
-  - [Startup scripts](#startup-scripts)
+  - [Startup scripts](#startup-scripts-1)
     - [Firewall integration](#firewall-integration)
       - [OpenWRT firewall integration](#openwrt-firewall-integration)
     - [Custom scripts](#custom-scripts)
@@ -258,11 +259,11 @@
         - [Additional functions](#additional-functions)
   - [Installer](#installer)
     - [OpenWRT integration principles](#openwrt-integration-principles)
-    - [OpenWRT cheat Sheet](#openwrt-cheat-sheet)
+    - [OpenWRT cheat sheet](#openwrt-cheat-sheet)
     - [systemd integration principles](#systemd-integration-principles)
     - [systemd cheat sheet](#systemd-cheat-sheet)
-    - [openrc integration principles](#openrc-integration-principles)
-    - [openrc cheat sheet](#openrc-cheat-sheet)
+    - [OpenRC integration principles](#openrc-integration-principles)
+    - [OpenRC cheat sheet](#openrc-cheat-sheet)
   - [Alternative installation on systemd](#alternative-installation-on-systemd)
 - [Other firmwares](#other-firmwares)
 - [Windows](#windows)
@@ -697,9 +698,9 @@ Specific parameters for winws2:
  --wf-iface=<int>[.<int>]               ; WinDivert constructor: network interface number
  --wf-l3=ipv4|ipv6                      ; WinDivert constructor: IP version
  --wf-tcp-in=[~]port1[-port2]           ; WinDivert constructor: TCP ports or port ranges for interception in the incoming direction. Comma-separated list.
+ --wf-tcp-out=[~]port1[-port2]          ; WinDivert constructor: TCP ports or port ranges for interception in the outgoing direction. Comma-separated list.
  --wf-udp-in=[~]port1[-port2]           ; WinDivert constructor: UDP ports or port ranges for interception in the incoming direction. Comma-separated list.
- --wf-tcp-in=[~]port1[-port2]           ; WinDivert constructor: TCP ports or port ranges for interception in the outgoing direction. Comma-separated list.
- --wf-udp-in=[~]port1[-port2]           ; WinDivert constructor: UDP ports or port ranges for interception in the outgoing direction. Comma-separated list.
+ --wf-udp-out=[~]port1[-port2]          ; WinDivert constructor: UDP ports or port ranges for interception in the outgoing direction. Comma-separated list.
  --wf-tcp-empty=[~]port1[-port2]        ; WinDivert constructor: intercept empty TCP ACK packets. Default is no.
  --wf-raw-part=<filter>|@<filename>     ; WinDivert constructor: partial WinDivert raw filter. Combined using the OR principle.
  --wf-filter-lan=0|1                    ; WinDivert constructor: filter out non-global IP addresses. Default is yes.
