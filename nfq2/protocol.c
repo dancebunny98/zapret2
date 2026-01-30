@@ -1435,8 +1435,8 @@ bool IsStunMessage(const uint8_t *data, size_t len)
 	return len>=20 && // header size
 		(data[0]&0xC0)==0 && // 2 most significant bits must be zeroes
 		(data[3]&3)==0 && // length must be a multiple of 4
-		ntohl(pntoh32(data+4))==0x2112A442 && // magic cookie
-		ntohs(pntoh16(data+2))==(len-20);
+		pntoh32(data+4)==0x2112A442 && // magic cookie
+		pntoh16(data+2)==(len-20);
 }
 #if defined(__GNUC__) && !defined(__llvm__)
 __attribute__((optimize ("no-strict-aliasing")))

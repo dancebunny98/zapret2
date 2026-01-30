@@ -140,7 +140,7 @@ static void ConntrackApplyPos(t_ctrack *t, bool bReverse, const struct dissect *
 	if (dis->ip6) direct->ip6flow = ntohl(dis->ip6->ip6_ctlun.ip6_un1.ip6_un1_flow);
 
 	scale = tcp_find_scale_factor(dis->tcp);
-	mss = ntohs(tcp_find_mss(dis->tcp));
+	mss = tcp_find_mss(dis->tcp);
 
 	direct->seq_last = ntohl(dis->tcp->th_seq);
 	direct->pos = direct->seq_last + dis->len_payload;
