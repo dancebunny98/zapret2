@@ -82,6 +82,7 @@
       - [reconstruct\_dissect](#reconstruct_dissect)
       - [reconstruct\_hdr](#reconstruct_hdr)
       - [csum\_fix](#csum_fix)
+    - [conntrack](#conntrack)
     - [Obtaining IP addresses](#obtaining-ip-addresses)
     - [Receiving and sending Packets](#receiving-and-sending-packets)
       - [rawsend](#rawsend)
@@ -2083,6 +2084,25 @@ Functions for fixing checksums. Since strings in Lua are immutable, these functi
 - `csum_tcp_fix`, `csum_udp_fix` `csum_icmp_fix` take a raw IP header (IPv4 or IPv6), a TCP/UDP/ICMP header, and the payload. The IP version is detected automatically. The checksum is calculated based on the L3 and L4 headers and the payload.
 
 Direct reconstruction of individual headers is rarely necessary. Typically, all tasks are handled by functions working with dissects.
+
+### conntrack
+
+```
+function conntrack_feed(dissect, reconstruct_opts)
+```
+
+"Feed" dissect to conntrack the way as if it was received from the network.
+aaa
+2 values are returned : [track](#the-track-table-structure) and bool value "outgoing".
+outgoing is true if a new conntrack record was created and it was a SYN packet in case of tcp or any packet in case of udp.
+If conntrack record already exists outgoing is true if the record was found by direct tuple - src_ip, src_port, dst_ip, dst_port.
+If the record was found by reverse tuple - dst_ip, dst_port, src_ip, src_port - outgoing is false.
+
+The function can come in handy if you are obfuscating and transmitting data in a distorted form. For example, tcp is converted to icmp or the SYN flag is corrupted.
+The receiving end will issue the first corrupted packet without track, because it is either not tcp and not udp, or there was no valid tcp handshake.
+After deobfuscation, you can correct the situation by executing conntrack_feed and assigning desync.track its result.
+
+If conntrack is disabled or the packet is not valid tcp or udp, nil is returned.
 
 ### Obtaining IP addresses
 

@@ -80,6 +80,7 @@
       - [reconstruct\_dissect](#reconstruct_dissect)
       - [reconstruct\_hdr](#reconstruct_hdr)
       - [csum\_fix](#csum_fix)
+    - [conntrack](#conntrack)
     - [Получение ip адресов](#получение-ip-адресов)
     - [Прием и отсылка пакетов](#прием-и-отсылка-пакетов)
       - [rawsend](#rawsend)
@@ -2241,6 +2242,24 @@ function csum_icmp_fix(raw_ip_header, raw_icmp_header, payload)
 - csum_tcp_fix, csum_udp_fix, csum_icmp_fix берут raw ip заголовок (ipv4 или ipv6), tcp/udp/icmp заголовок и пейлоад. версия ip определяется автоматически. чексумма считается на базе L3, L4 заголовков и пейлоада.
 
 Прямая реконструкция отдельных заголовков нужна редко. Обычно все задачи выполняют функции по работе с диссектами.
+
+### conntrack
+
+```
+function conntrack_feed(dissect, reconstruct_opts)
+```
+
+"Скормить" conntrack пакет таким образом, как если бы он пришел из сети и был проанализирован.
+Возвращается 2 значения - [track](#структура-track) и bool признак "outgoing".
+outgoing принимает значение true, если создается новая запись conntrack и она удовлетворяет признакам клиента - SYN в случае tcp, любой пакет в случае udp.
+Если запись уже существует, outgoing = true, если запись была найдена по прямой паре - src_ip, src_port, dst_ip, dst_port.
+Если запись была найдена по обратной паре - dst_ip, dst_port, src_ip, src_port, outgoing = false.
+
+Функция может пригодиться, если выполняется обфускация и передача данных в искаженном виде. Например, tcp преобразуется в icmp или портится флаг SYN.
+Принимающий конец выдаст первый искаженный пакет без track, потому что это либо не tcp и не udp, либо не было валидного tcp handshake.
+После деобфускации вы можете исправить ситуацию, выполнив conntrack_feed и присвоив desync.track его результат.
+
+Если conntrack выключен или пакет не является валидным tcp или udp, возвращается nil.
 
 ### Получение ip адресов
 
