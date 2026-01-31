@@ -2882,12 +2882,11 @@ static int luacall_rawsend_dissect(lua_State *L)
 	uint8_t last_proto;
 	uint8_t buf[RECONSTRUCT_MAX_SIZE] __attribute__((aligned(16)));
 
-	len = sizeof(buf);
-
 	luaL_checktype(L,1,LUA_TTABLE);
 	lua_rawsend_extract_options(L,2, &repeats, &fwmark, &ifout);
 	lua_reconstruct_extract_options(L, 3, &keepsum, &badsum, &ip6_preserve_next, &last_proto);
 
+	len = sizeof(buf);
 	if (!lua_reconstruct_dissect(L, 1, buf, &len, keepsum, badsum, last_proto, ip6_preserve_next))
 		luaL_error(L, "invalid dissect data");
 
@@ -2918,11 +2917,10 @@ static int luacall_conntrack_feed(lua_State *L)
 		t_ctrack *ctrack;
 		uint8_t buf[RECONSTRUCT_MAX_SIZE] __attribute__((aligned(16)));
 
-		len = sizeof(buf);
-
 		luaL_checktype(L,1,LUA_TTABLE);
 		lua_reconstruct_extract_options(L, 2, &keepsum, &badsum, &ip6_preserve_next, &last_proto);
 
+		len = sizeof(buf);
 		if (!lua_reconstruct_dissect(L, 1, buf, &len, keepsum, badsum, last_proto, ip6_preserve_next))
 			luaL_error(L, "invalid dissect data");
 
