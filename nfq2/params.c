@@ -430,6 +430,7 @@ bool dp_copy(struct desync_profile *to, const struct desync_profile *from)
 	{
 		to->filter_ipv4 = from->filter_ipv4;
 		to->filter_ipv6 = from->filter_ipv6;
+		to->b_filter_l3 = true;
 	}
 
 	// copy dynamic structures
