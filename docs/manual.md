@@ -2731,7 +2731,7 @@ function dissect_nld(domain, level)
 ```
 function http_dissect_req(http)
 function http_dissect_reply(http)
-function http_reconstruct_req(hdis, unixeol)
+function http_reconstruct_req(hdis[, unixeol])
 ```
 
 Разборка HTTP запроса или ответа http. http представляет собой многострочный текст.

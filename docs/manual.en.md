@@ -2560,7 +2560,7 @@ If the specified level does not exist, it returns `nil`.
 ```
 function http_dissect_req(http)
 function http_dissect_reply(http)
-function http_reconstruct_req(hdis, unixeol)
+function http_reconstruct_req(hdis[, unixeol])
 ```
 
 Parses an HTTP request or response. The `http` parameter is a multi-line string.
