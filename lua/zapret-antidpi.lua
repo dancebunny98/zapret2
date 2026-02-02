@@ -1127,12 +1127,12 @@ function oob(ctx, desync)
 					dis_oob.tcp.th_urp = urp
 				else
 					urp = resolve_pos(data, desync.l7payload, desync.arg.urp)
-					DLOG("oob: resolved urp marker to "..urp-1)
 					if not urp then
 						DLOG("oob: cannot resolve urp marker '"..desync.arg.urp.."'")
 						instance_cutoff_shim(ctx, desync)
 						return
 					end
+					DLOG("oob: resolved urp marker to "..urp-1)
 					dis_oob.tcp.th_urp = urp
 				end
 				DLOG("oob: th_urp "..dis_oob.tcp.th_urp)
