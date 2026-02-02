@@ -1,4 +1,5 @@
-<H1>This manual is mostly AI translated from russian</H1>
+> [!NOTE]
+> This manual is mostly AI translated from russian
 
 # Contents
 
@@ -38,8 +39,8 @@
     - [Dissect structure](#dissect-structure)
     - [Handling multi-packet payloads](#handling-multi-packet-payloads)
     - [The track table structure](#the-track-table-structure)
-      - [icmp processing](#icmp-processing)
-      - [raw ip processing](#raw-ip-processing)
+      - [ICMP processing](#icmp-processing)
+      - [raw IP processing](#raw-ip-processing)
 - [nfqws2 C interface](#nfqws2-c-interface)
   - [Base constants](#base-constants)
   - [Standard blobs](#standard-blobs)
@@ -255,7 +256,7 @@
       - [get\_refilter\_\*.sh](#get_refilter_sh)
       - [get\_reestr\_\*.sh](#get_reestr_sh)
     - [ipban system](#ipban-system)
-  - [Startup scripts](#startup-scripts-1)
+  - [Init scripts](#init-scripts)
     - [Firewall integration](#firewall-integration)
       - [OpenWRT firewall integration](#openwrt-firewall-integration)
     - [Custom scripts](#custom-scripts)
@@ -286,11 +287,11 @@ zapret2 is a packet manipulator primarily designed to perform various autonomous
 
 # Project structure
 
-The core component of zapret2 is the **nfqws2** program (**dvtws2** on BSD, **winws2** on Windows). Written in C, it serves as the primary packet manipulator. It includes functions for packet interception, basic [filtering](#using-multiple-profiles), recognition of major protocols and payloads, support for host and IP [lists](#filtering-by-lists), [automated](#failure-detector-and-auto-hostlists) hostlists with block detection, a system of multiple [profiles](#using-multiple-profiles) (strategies), [raw packet transmission](#receiving-and-sending-packets), and other utility functions. However, it does not contain the logic for traffic modification itself; this is handled by Lua code called from [nfqws2](#nfqws2).
+The core component of zapret2 is the **nfqws2** program (**dvtws2** on BSD, **winws2** on Windows). Written in C, it serves as the primary packet manipulator. It includes functions for packet interception, basic [filtering](#using-multiple-profiles), recognition of major protocols and payloads, support for host and IP [lists](#filtering-by-lists), [automated](#autohostlist-failure-detector) hostlists with block detection, a system of multiple [profiles](#using-multiple-profiles) (strategies), [raw packet transmission](#receiving-and-sending-packets), and other utility functions. However, it does not contain the logic for traffic modification itself; this is handled by Lua code called from [nfqws2](#nfqws2).
 
 Consequently, the Lua code is the next most critical part of the project. The base package includes the [zapret-lib.lua](#zapret-liblua-base-function-library) helper library, the [zapret-antidpi.lua](#zapret-antidpilua-dpi-attack-program-library) DPI attack library, and the [zapret-auto.lua](#zapret-autolua-automation-and-orchestration-library) orchestration library for dynamic decision-making. Additionally, it features `zapret-tests.lua` for testing C functions, `zapret-obfs.lua` for protocol obfuscation, and `zapret-pcap.lua` for capturing traffic into .cap files.
 
-Project requires LuaJIT-2.1+ or PUC Lua 5.3+. Older versions are not tested and not supported.
+The project requires LuaJIT-2.1+ or PUC Lua 5.3+. Older versions are not tested and not supported.
 
 Traffic redirection from the kernel is handled by [iptables](#traffic-interception-using-iptables) and [nftables](#traffic-interception-using-nftables) in [Linux](#traffic-interception-in-the-linux-kernel), [ipfw](#traffic-interception-in-the-freebsd-kernel) in [FreeBSD](#traffic-interception-in-the-freebsd-kernel), and [pf](#traffic-interception-in-the-openbsd-kernel) in [OpenBSD](#traffic-interception-in-the-openbsd-kernel). On [Windows](#traffic-interception-in-the-windows-kernel), this functionality is built directly into the winws2 process via the WinDivert driver. The kernel interception scheme, nfqws2, and the Lua code constitute the project's minimal working core. Everything else is supplementary, secondary, or optional.
 
@@ -368,7 +369,7 @@ This is achieved using `iptables` or `nftables` via the NFQUEUE mechanism.
 If you have to choose between `iptables` and `nftables`, you should definitely choose `nftables`. Support for `nftables` in the [startup scripts](#startup-scripts) is more robust, and the technology itself is much more "neighbor-friendly" toward rules from other programs because it uses separate tables. In `iptables`, everything is mixed together, and one program's rules might break another's. `iptables` should be considered a legacy option for compatibility when no other choice exists. In a modern Linux distribution, you should definitely avoid `iptables`. However, if you are using an older Linux version (kernel older than 5.15 or `nft` older than 1.0.1) and cannot upgrade, `iptables` is better, as older kernels and `nft` versions will have issues.
 
 The following test examples are intended for custom startup systems or manual execution.
-The `zapret` startup scripts generate the necessary rules automatically; you do not need to write `ip/nf tables` rules yourself.
+The `zapret` startup scripts generate the necessary rules automatically; you do not need to write iptables/nftables rules yourself.
 
 ### Traffic interception using nftables
 
@@ -722,7 +723,7 @@ Specific parameters for winws2:
  --wf-ipp-out=type[:code]               ; WinDivert constructor: raw IP protocols for interception in the outgoing direction. Comma-separated list.
  --wf-tcp-empty=[~]port1[-port2]        ; WinDivert constructor: intercept empty TCP ACK packets. Default is no.
  --wf-raw-part=<filter>|@<filename>     ; WinDivert constructor: partial WinDivert raw filter. Combined using OR principle. Multiple allowed.
- --wf-raw-filter=<filter>|@<filename>   ; WinDivert constructor: partial WinDivert raw фильтр. Combined using AND principle. Only one is allowed.
+ --wf-raw-filter=<filter>|@<filename>   ; WinDivert constructor: partial WinDivert raw filter. Combined using AND principle. Only one is allowed.
  --wf-filter-lan=0|1                    ; WinDivert constructor: filter out non-global IP addresses. Default is yes.
  --wf-raw=<filter>|@<filename>          ; full WinDivert filter. Overrides the constructor.
  --wf-dup-check[=0|1]                   ; 1 (default) = do not allow duplicate winws2 instances with the same wf filter
@@ -735,8 +736,8 @@ LOGICAL NETWORK FILTER:
 
 ## Protocol detection
 
-nfqws2 signatures the payload types of individual packets or groups of packets.
-All packets without data have payload empty. Undetermined payloads have payload type "unknown".
+nfqws2 signatures the payload types of individual packets or packet groups.
+All packets without data have payload type "empty", undetermined payloads - type "unknown".
 The flow protocol is assigned after receiving the first known payload and remains with the flow for the rest of its existence.
 In this case, subsequent payloads can have both a known type and an unknown one.
 In payload and flow protocol filters special values are available - "all" and "known". "all" means any, "known" - not "empty" and not "unknown".
@@ -787,12 +788,13 @@ For TLS, HTTP, and QUIC protocols, there is typically only one jump because the 
 When writing strategies, they should be designed with this jump logic in mind.
 If a strategy needs to start from the very first packet and continue working after a profile change, you must duplicate the calls across all profiles the flow might pass through.
 
-4 filter groups - tcp, udp, icmp, ipp are OR combined. If there're no filters in that groups - everything is allowed.
-If any defined - all undefined are blocked.
+Four filter groups - tcp, udp, icmp, ipp are OR combined. If there're no filters in these groups - everything is allowed.
+If any filters are defined - all undefined groups are blocked.
 
 ipp filter does not work with tcp, udp and icmp. They are checked by their specific filters. For example, `--filter-ipp=6` does not work. What is meant could be achieved with `--filter-tcp=*`.
 
-icmp automatically assumes icmpv6 - they are processed the same they. However icmp types for [icmp](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) and [icmpv6](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) differ.
+icmp filter matches both icmp and icmpv6 - they are processed the same they.
+However, icmp types differ between [icmp](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) and [icmpv6](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml).
 
 ### Profile templates
 
@@ -829,9 +831,9 @@ Any parameters applicable to profiles, including filters, are allowed within tem
 
 ### Filtering by ipsets
 
-- In case of tcp or udp server address is matched in client mode и and client address in [server mode](#server-mode).
-- related icmp use cached profile from the original packet.
-- Unrelated icmp and и raw ip are matched by either source or destination ip. To match ipset any of two must match.
+- For TCP and UDP the server address is matched in client mode and the client address in [server mode](#server-mode).
+- Related ICMP use the cached profile from the original packet.
+- Unrelated ICMP and и raw IP are matched by either source or destination ip. To match an ipset either IP must match.
 
 ### Filtering by lists
 
@@ -1467,12 +1469,12 @@ All multi-byte numeric values are automatically converted from network byte orde
 icmp header is the first 8 bytes of ICMP. This part is mandatory for all icmp types - both ipv4 and ipv6.
 Following data including optional headers or attached IP packet goes to payload.
 
-| Поле        | Описание                                             |
-| :---------- | :--------------------------------------------------- |
-| icmp_type   | [icmp type](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |
-| icmp_code   | [icmp code](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |
-| icmp_cksum  | ICMP checksum |
-| icmp_data   | 32-bit field at 4-byte offset |
+| Field      | Description |
+| :--------- | :---------- |
+| icmp_type  | [icmp type](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |
+| icmp_code  | [icmp code](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |
+| icmp_cksum | ICMP checksum |
+| icmp_data  | 32-bit field at 4-byte offset |
 
 
 ### Handling multi-packet payloads
@@ -1556,7 +1558,7 @@ However, the latter simple comparison will not work correctly, whereas the forme
 It is impossible to track anything beyond that using sequences. Always keep in mind that when transferring large volumes of data, sequences cannot serve as a counter.
 The `p*counter` fields are 64-bit counters, so they do not suffer from this issue.
 
-#### icmp processing
+#### ICMP processing
 
 Some icmp types may contain an attached source packet to which icmp was generated. They are called "related."
 Such payloads are recognized, they are used to search the original conntrack record.
@@ -1571,7 +1573,7 @@ without track.
 conntrack works only with tcp and udp, it does not keep records of pings or other icmp types.
 No counters change when icmp traverses the conntrack entry.
 
-#### raw ip processing
+#### raw IP processing
 
 If the ip protocol is not recognized as tcp, udp, icmp, icmpv6, it is considered raw ip.
 Dissect has ip/ip6 field and payload. Payload contains all data after L3 headers.
@@ -1603,7 +1605,7 @@ Before executing `--lua-init`, the C code sets up base constants, blobs, and C f
 | TCP_BASE_LEN | number | Base TCP header size   | 20  |
 | UDP_BASE_LEN | number | UDP header size        | 8   |
 | TCP_KIND_END<br>TCP_KIND_NOOP<br>TCP_KIND_MSS<br>TCP_KIND_SCALE<br>TCP_KIND_SACK_PERM<br>TCP_KIND_SACK<br>TCP_KIND_TS<br>TCP_KIND_MD5<br>TCP_KIND_AO<br>TCP_KIND_FASTOPEN | number | TCP option type codes (kinds) | |
-| TH_FIN<br>TH_SYN<br>TH_RST<br>TH_PUSH<br>TH_ACK<br>TH_FIN<br>TH_URG<br>TH_ECE<br>TH_CWR | number | TCP flags | Can be combined using + |
+| TH_FIN<br>TH_SYN<br>TH_RST<br>TH_PUSH<br>TH_ACK<br>TH_URG<br>TH_ECE<br>TH_CWR | number | TCP flags | Can be combined using + |
 | IP_MF | number | IP "more fragments" flag | 0x8000, part of the ip_off field |
 | IP_DF | number | IP "don't fragment" flag | 0x4000, part of the ip_off field |
 | IP_RF | number | IP "reserved" flag | 0x2000, part of the ip_off field |
@@ -1619,14 +1621,14 @@ Before executing `--lua-init`, the C code sets up base constants, blobs, and C f
 | IPV6_FLOWLABEL_MASK | number | flow label in ip6_flow | 0x000FFFFF |
 | IPV6_FLOWINFO_MASK | number | flow label and traffic class in ip6_flow | 0x0FFFFFFF  |
 | IPPROTO_IP<br>IPPROTO_IPV6<br>IPPROTO_ICMP<br>IPPROTO_ICMPV6<br>IPPROTO_TCP<br>IPPROTO_UDP<br>IPPROTO_SCTP<br>IPPROTO_HOPOPTS<br>IPPROTO_ROUTING<br>IPPROTO_FRAGMENT<br>IPPROTO_AH<br>IPPROTO_ESP<br>IPPROTO_DSTOPTS<br>IPPROTO_MH<br>IPPROTO_HIP<br>IPPROTO_SHIM6<br>IPPROTO_NONE | number | [IP protocol numbers](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml) | used in IPv4 and IPv6 |
-| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<br>ICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [icmp types](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |
-| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | icmp codes for destination unreachable |
-| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | icmp codes for redirect |
-| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | icmp codes for time exceeded |
-| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [icmpv6 types](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) |
-| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | icmpv6 codes for destination unreachable |
-| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | icmpv6 codes for time exceeded |
-| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | icmpv6 codes for parameter problem |
+| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<brICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [icmp types](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) | |
+| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | icmp codes for destination unreachable | |
+| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | icmp codes for redirect | |
+| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | icmp codes for time exceeded | |
+| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [icmpv6 types](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) | |
+| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | icmpv6 code for destination unreachable |
+| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | icmpv6 codes for time exceeded | |
+| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | icmpv6 codes for parameter problem | |
 
 
 ## Standard blobs
@@ -1993,7 +1995,7 @@ If you are reconstructing an IPv6 header separately and are not using the `ip6_p
 
 `badsum` has been moved to reconstruction because TCP and UDP checksums are calculated based on the entire IP packet.
 The checksum includes elements from the IP/IPv6 header, the entire TCP header, and the payload itself.
-Therefore, it is impossible to guaranteed a corrupted checksum by looking at individual parts alone.
+Therefore, it is impossible to guarantee a corrupted checksum by looking at individual parts alone.
 No matter what value you input, there is a small probability (1/65536) that it will happen to be valid.
 
 The packet is formed based on the L3 header, then the L4 header (TCP,UDP,ICMP, if present) is appended, followed by the payload.
@@ -2113,7 +2115,7 @@ If conntrack is disabled or the packet is not valid tcp or udp, nil is returned.
 function get_source_ip(target)
 ```
 
-Get source IP (raw string) that would be use for connection the the target IP.
+Get source IP (raw string) that would be used for connection the the target IP.
 Returns nil if destination is unreachable.
 
 ```
@@ -2126,10 +2128,10 @@ This is WinDivert compatible.
 
 Interface table contents :
 
-| Поле              | Тип    | Описание            |
+| Field             | Type   | Description         |
 | :---------------- | :----- | :------------------ |
 | index             | number | interface index |
-| mtu               | number | MTU. for loopback can be 64K or oven 0xFFFFFFFF |
+| mtu               | number | MTU. for loopback can be 64K or even 0xFFFFFFFF |
 | flags             | number | os-specific bit flags |
 | ssid              | string | wifi SSID if known. SSIDs are obtained only if `--filter-ssid` is used in any profile |
 | guid<br>iftype<br>index6<br>speed_xmit<br>speed_recv<br>metric4<br>metric6<br>conntype<br> | number | (windows only) additional fields from GetAdaptersAddresses() |
@@ -2137,7 +2139,7 @@ Interface table contents :
 
 Address contents :
 
-| Поле         | Тип    | Описание            |
+| Field        | Type   | Description         |
 | :----------- | :----- | :------------------ |
 | addr         | string | ipv4 or ipv6 address - raw string |
 | netmask      | string | subnet mask - raw string |
@@ -3041,8 +3043,8 @@ function ip_proto(dis)
 Functions discover ip protocol of the end payload.
 
 * ip_proto_l3 - ipv4 - ip.ip_p , ipv6 - ip6.ip6_nxt or next from the last extension header. nil, if next field is not set.
-* ip_proto_l4 - IPPROTO_TCP, IPPROTO_UDP, IPPROTO_ICMP, IPPROTO_UDP depending on presence of tcp,udp,icmp,ip6. nil if tcp,udp,icmp are absent.
-* ip_proto - ip_proto_l4. если он вернул nil, то ip_proto_l3.
+* ip_proto_l4 - IPPROTO_TCP, IPPROTO_UDP, IPPROTO_ICMP, IPPROTO_ICMPV6 depending on presence of tcp,udp,icmp,ip6. nil if tcp,udp,icmp are absent.
+* ip_proto - ip_proto_l4. If it returned nil, then ip_proto_l3.
 
 ```
 function fix_ip_proto(dis, proto)
@@ -3886,7 +3888,7 @@ function fakedsplit(ctx, desync)
 - arg: [standard ipid](#standard-ipid)
 - arg: [standard reconstruct](#standard-reconstruct)
 - arg: [standard rawsend](#standard-rawsend)
-- arg: pos - a single [marker](#маркеры) acting as the split point. Defaults to "2".
+- arg: pos - a single [marker](#markers) acting as the split point. Defaults to "2".
 - arg: seqovl - numeric value - an offset relative to the current sequence to create an additional segment part that extends to the left of the TCP window boundary.
 - arg: seqovl_pattern - the [blob](#passing-blobs) used to fill the seqovl. Defaults to 0x00.
 - arg: blob - replaces the current payload with the specified [blob](#passing-blobs).
@@ -4020,9 +4022,9 @@ function tcpseg(ctx, desync)
 - arg: optional - skip the operation if a blob is specified but missing. If `seqovl_pattern` is specified but missing, use the 0x00 pattern.
 - default payload filter - "known"
 
-Sends a part of the current dissect, [reasm](#reassembly-features), or an arbitrary blob, limited by two `pos` [markers](#markers) with optional application of the `seqovl` technique in the same way as in [multisplit](#multisplit). Additional segmentation is performed automatically if the MSS is exceeded.
+Sends a part of the current dissect, [reasm](#handling-multi-packet-payloads), or an arbitrary blob, limited by two `pos` [markers](#markers) with optional application of the `seqovl` technique in the same way as in [multisplit](#multisplit). Additional segmentation is performed automatically if the MSS is exceeded.
 
-In the case of [reasm](#reassembly-features), it only works when receiving its first part (as it operates on the reasm as a whole, not its individual parts).
+In the case of [reasm](#handling-multi-packet-payloads), it only works when receiving its first part (as it operates on the reasm as a whole, not its individual parts).
 
 No verdict is issued.
 
@@ -4936,13 +4938,13 @@ A typical `ipban` usage scenario begins with creating an ipset from the saved li
 create_ipset no-update
 ```
 
-You cannot be certain which will start first-your script or `zapret`.
+You cannot be certain which will start first : your script or `zapret`.
 Startup must be synchronized and should not run in parallel.
 The best way to achieve this is by using [INIT_FW_*_HOOK](#config-file).
 
-## Startup scripts
+## Init scripts
 
-These are available only for Linux and OpenWRT. The Linux version is located in `init.d/sysv`, and the OpenWRT version is in `init.d/openwrt`. The main executable is `zapret2`. The required action is passed via the `$1` argument. The startup procedure is split into starting the daemons (nfqws2 processes) and initializing the firewall (applying ip/nftables rules).
+These are available only for Linux and OpenWRT. The Linux version is located in `init.d/sysv`, and the OpenWRT version is in `init.d/openwrt`. The main executable is `zapret2`. The required action is passed via the `$1` argument. The startup procedure is split into starting the daemons (nfqws2 processes) and initializing the firewall (applying iptables/nftables rules).
 
 | Command ($1)                                     | Action                                                                                                                                                                                                                                                                |
 | :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -5318,7 +5320,7 @@ On classic Linux distributions with systemd, you can use the provided template u
 7. Stop: `systemctl stop nfqws2@INSTANCE`
 8. Restart: `systemctl restart nfqws2@INSTANCE`
 
-This method does not apply ip/nf tables rules - you will have to handle that separately, as well as write the rules themselves. The rules must be placed somewhere so they are applied after the system starts. For example, you can create a separate systemd unit that runs a shell script or `nft -f /path/to/file.nft`.
+This method does not apply iptables/nftables rules - you will have to handle that separately, as well as write the rules themselves. The rules must be placed somewhere so they are applied after the system starts. For example, you can create a separate systemd unit that runs a shell script or `nft -f /path/to/file.nft`.
 
 # Other firmwares
 

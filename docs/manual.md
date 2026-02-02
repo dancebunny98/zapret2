@@ -402,7 +402,7 @@ ipset от iptables такое может провернуть даже на 64 
 Если стоит выбор между iptables или nftables, то однозначно выбирайте nftables. Поддержка nftables в [скриптах запуска](#скрипты-запуска) сделана более качественно, а сама технология nftables гораздо более уживчива к "соседям" - правилам разных программ, поскольку использует отдельные таблицы. В iptables все намешано в кучу, и одни программы , задающие iptables, могут попортить правила других программ. iptables можно рассматривать как legacy вариант для совместимости , когда иных вариантов нет. В современном дистрибутиве Linux точно не стоит выбирать iptables. Но если Linux более старый, ядро старее 5.15 или nft старее 1.0.1, а возможности обновить их нет, тогда лучше iptables. Со старыми ядрами и старым nft будут проблемы.
 
 Приведенные далее тестовые примеры предназначены для своей системы запуска или запуска вручную.
-Скрипты запуска zapret сами генерируют необходимые правила, никаких ip/nf tables самому писать не нужно.
+Скрипты запуска zapret сами генерируют необходимые правила, никаких iptables/nftables самому писать не нужно.
 
 ### Перехват трафика с помощью nftables
 
@@ -1731,47 +1731,47 @@ desync.track всегда отсутствует.
 
 | Поле  | Тип      | Примечание |
 | :---- | :------- | :--------- |
-| qnum  | number | номер очереди NFQUEUE                                                                            | только в Linux                                      |
-| divert_port | number | номер порта divert                                                                               | только в BSD                                        |
-| desync_fwmark | number | fwmark для Linux, sockarg для BSD, 0 в Windows                                                   |                                                     |
-| NFQWS2_VER | string | версия nfqws2                                                                                    | строка, выводимая по --version                      |
-| NFQWS2_COMPAT_VER | number | порядковый номер несовместимых изменений интерфейса с nfqws2                                     | увеличивается на 1 после каждого изменения          |
-| b_debug | bool   | включен --debug                                                                                  | вывод отладочных сообщений                          |
-| b_daemon | bool   | включен --daemon                                                                                 | демонизация процесса, отвязка от tty                |
-| b_server | bool   | включен --server                                                                                 | серверный режим                                     |
-| b_ipcache_hostname  | bool   | включен --ipcache-hostname                                                                       | кэширование имен хостов, соответствующих IP адресам |
-| b_ctrack_disable | bool   | включен --ctrack-disable                            | отключен conntrack                                  |
-| VERDICT_PASS<br>VERDICT_MODIFY<br>VERDICT_DROP<br>VERDICT_PRESERVE_NEXT  | number | код вердикта desync функции<br>VERDICT_PRESERVE_NEXT складывается как бит  |
-| DEFAULT_MSS   | number | значение MSS по умолчанию                                                                        | 1220                                                |
-| IP_BASE_LEN   | number | базовый размер ipv4 хедера                                                                       | 20                                                  |
-| IP6_BASE_LEN  | number | базовый размер ipv6 хедера                                                                       | 40                                                  |
-| TCP_BASE_LEN  | number | базовый размер tcp хедера                                                                        | 20                                                  |
-| UDP_BASE_LEN  | number | размер udp хедера                                                                                | 8                                                   |
+| qnum  | number | номер очереди NFQUEUE | только в Linux |
+| divert_port | number | номер порта divert | только в BSD |
+| desync_fwmark | number | fwmark для Linux, sockarg для BSD, 0 в Windows | |
+| NFQWS2_VER | string | версия nfqws2 | строка, выводимая по --version |
+| NFQWS2_COMPAT_VER | number | порядковый номер несовместимых изменений интерфейса с nfqws2 | увеличивается на 1 после каждого изменения |
+| b_debug | bool   | включен --debug | вывод отладочных сообщений |
+| b_daemon | bool   | включен --daemon | демонизация процесса, отвязка от tty |
+| b_server | bool   | включен --server | серверный режим |
+| b_ipcache_hostname  | bool   | включен --ipcache-hostname | кэширование имен хостов, соответствующих IP адресам |
+| b_ctrack_disable | bool   | включен --ctrack-disable | отключен conntrack |
+| VERDICT_PASS<br>VERDICT_MODIFY<br>VERDICT_DROP<br>VERDICT_PRESERVE_NEXT  | number | код вердикта desync функции<br>VERDICT_PRESERVE_NEXT складывается как бит |
+| DEFAULT_MSS   | number | значение MSS по умолчанию  | 1220 |
+| IP_BASE_LEN   | number | базовый размер ipv4 хедера | 20   |
+| IP6_BASE_LEN  | number | базовый размер ipv6 хедера | 40   |
+| TCP_BASE_LEN  | number | базовый размер tcp хедера  | 20   |
+| UDP_BASE_LEN  | number | размер udp хедера          | 8    |
 | TCP_KIND_END<br>TCP_KIND_NOOP<br>TCP_KIND_MSS<br>TCP_KIND_SCALE<br>TCP_KIND_SACK_PERM<br>TCP_KIND_SACK<br>TCP_KIND_TS<br>TCP_KIND_MD5<br>TCP_KIND_AO<br>TCP_KIND_FASTOPEN  | number | коды типов tcp опций (kinds) |                                                     |
-| TH_FIN<br>TH_SYN<br>TH_RST<br>TH_PUSH<br>TH_ACK<br>TH_FIN<br>TH_URG<br>TH_ECE<br>TH_CWR  | number | tcp флаги  | можно складывать через +                            |
-| IP_MF  | number | флаг IP "more fragments"                                                                         | 0x8000, часть поля ip_off                           |
-| IP_DF  | number | флаг IP "dont fragment"                                                                          | 0x4000, часть поля ip_off                           |
-| IP_RF  | number | флаг IP "reserved"                                                                               | 0x2000, часть поля ip_off                           |
-| IP_OFFMASK  | number | битовая маска поля ip_off, соответствующая fragment offset                                       | 0x1FFF                                              |
-| IP_FLAGMASK | number | битовая маска поля ip_off, соответствующая IP флагам                                             | 0xE000                                              |
-| IPTOS_ECN_MASK  | number | битовая маска поля ip_tos, соответствующая ECN                                                   | 0x03                                                |
-| IPTOS_ECN_NOT_ECT  | number | Not ECN-Capable Transport                                                                        | 0x00                                                |
-| IPTOS_ECN_ECT1  | number | ECN Capable Transport(1)                                                                         | 0x01                                                |
-| IPTOS_ECN_ECT0  | number | ECN Capable Transport(0)                                                                         | 0x02                                                |
-| IPTOS_ECN_CE    | number | Congestion Experienced                                                                           | 0x03                                                |
-| IPTOS_DSCP_MASK | number | битовая маска поля ip_tos, соответствующая DSCP                                                  | 0xFC                                                |
-| IP6F_MORE_FRAG  | number | бит "More fragment" поля ip6f_offlg из ipv6 fragment header                                      | 0x0001                                              |
-| IPV6_FLOWLABEL_MASK  | number | flow label в ip6_flow                                                                            | 0x000FFFFF                                          |
-| IPV6_FLOWINFO_MASK  | number | flow label, traffic class в ip6_flow                                                             | 0x0FFFFFFF                                          |
-| IPPROTO_IP<br>IPPROTO_IPV6<br>IPPROTO_IPIP<br>IPPROTO_ICMP<br>IPPROTO_ICMPV6<br>IPPROTO_TCP<br>IPPROTO_UDP<br>IPPROTO_SCTP<br>IPPROTO_HOPOPTS<br>IPPROTO_ROUTING<br>IPPROTO_FRAGMENT<br>IPPROTO_AH<br>IPPROTO_ESP<br>IPPROTO_DSTOPTS<br>IPPROTO_MH<br>IPPROTO_HIP<br>IPPROTO_SHIM6<br>IPPROTO_NONE | number | [номера IP протоколов](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml) | используются в ipv4 и ipv6                          |
-| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<br>ICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [типы icmp](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |
-| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | коды icmp для destination unreachable |
-| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | коды icmp для icmp redirect |
-| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | коды icmp для time exceeded |
-| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [типы icmpv6](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) |
-| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | коды icmpv6 для destination unreachable |
-| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | коды icmpv6 для time exceeded |
-| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | коды icmpv6 для parameter problem |
+| TH_FIN<br>TH_SYN<br>TH_RST<br>TH_PUSH<br>TH_ACK<br>TH_URG<br>TH_ECE<br>TH_CWR  | number | tcp флаги  | можно складывать через +                            |
+| IP_MF  | number | флаг IP "more fragments"   | 0x8000, часть поля ip_off |
+| IP_DF  | number | флаг IP "dont fragment"    | 0x4000, часть поля ip_off |
+| IP_RF  | number | флаг IP "reserved"         | 0x2000, часть поля ip_off |
+| IP_OFFMASK  | number | битовая маска поля ip_off, соответствующая fragment offset  | 0x1FFF |
+| IP_FLAGMASK | number | битовая маска поля ip_off, соответствующая IP флагам        | 0xE000  |
+| IPTOS_ECN_MASK  | number | битовая маска поля ip_tos, соответствующая ECN   | 0x03|
+| IPTOS_ECN_NOT_ECT  | number | Not ECN-Capable Transport  | 0x00|
+| IPTOS_ECN_ECT1  | number | ECN Capable Transport(1)   | 0x01|
+| IPTOS_ECN_ECT0  | number | ECN Capable Transport(0)   | 0x02|
+| IPTOS_ECN_CE    | number | Congestion Experienced     | 0x03|
+| IPTOS_DSCP_MASK | number | битовая маска поля ip_tos, соответствующая DSCP  | 0xFC|
+| IP6F_MORE_FRAG  | number | бит "More fragment" поля ip6f_offlg из ipv6 fragment header | 0x0001 |
+| IPV6_FLOWLABEL_MASK  | number | flow label в ip6_flow      | 0x000FFFFF  |
+| IPV6_FLOWINFO_MASK   | number | flow label, traffic class в ip6_flow | 0x0FFFFFFF  |
+| IPPROTO_IP<br>IPPROTO_IPV6<br>IPPROTO_IPIP<br>IPPROTO_ICMP<br>IPPROTO_ICMPV6<br>IPPROTO_TCP<br>IPPROTO_UDP<br>IPPROTO_SCTP<br>IPPROTO_HOPOPTS<br>IPPROTO_ROUTING<br>IPPROTO_FRAGMENT<br>IPPROTO_AH<br>IPPROTO_ESP<br>IPPROTO_DSTOPTS<br>IPPROTO_MH<br>IPPROTO_HIP<br>IPPROTO_SHIM6<br>IPPROTO_NONE | number | [номера IP протоколов](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml) | используются в ipv4 и ipv6  |
+| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<brICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [типы icmp](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) | |
+| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | коды icmp для destination unreachable | |
+| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | коды icmp для icmp redirect | |
+| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | коды icmp для time exceeded | |
+| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [типы icmpv6](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) | |
+| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | коды icmpv6 для destination unreachable | |
+| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | коды icmpv6 для time exceeded | |
+| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | коды icmpv6 для parameter problem | |
 
 ## Стандартные блобы
 
@@ -3214,7 +3214,7 @@ function ip_proto(dis)
 Функции "додумывают" ip protocol полезной нагрузки диссекта dis.
 
 * ip_proto_l3 - ipv4 - ip.ip_p , ipv6 - ip6.ip6_nxt или next из последнего extension header. nil, если next пуст.
-* ip_proto_l4 - IPPROTO_TCP, IPPROTO_UDP, IPPROTO_ICMP, IPPROTO_UDP в зависимости от наличия в диссекте tcp,udp,icmp,ip6. nil, если tcp,udp,icmp отсутствуют.
+* ip_proto_l4 - IPPROTO_TCP, IPPROTO_UDP, IPPROTO_ICMP, IPPROTO_ICMPV6 в зависимости от наличия в диссекте tcp,udp,icmp,ip6. nil, если tcp,udp,icmp отсутствуют.
 * ip_proto - ip_proto_l4. если он вернул nil, то ip_proto_l3.
 
 ```
@@ -5126,7 +5126,7 @@ create_ipset no-update
 
 ## Стартовые скрипты
 
-Имеются только для Linux и OpenWRT. Вариант для Linux - в `init.d/sysv`, для OpenWRT - в `init.d/openwrt`. Основной исполняемый файл - `zapret2`. Требуемое действие передается в аргументе `$1`. Процедура запуска разделена на запуск демонов - процессов nfqws2, и запуск firewall - выставление правил ip/nf tables.
+Имеются только для Linux и OpenWRT. Вариант для Linux - в `init.d/sysv`, для OpenWRT - в `init.d/openwrt`. Основной исполняемый файл - `zapret2`. Требуемое действие передается в аргументе `$1`. Процедура запуска разделена на запуск демонов - процессов nfqws2, и запуск firewall - выставление правил iptables/nftables.
 
 | Команда ($1)                                     | Действие                                                                                                                                                                                                                                  |
 | :----------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -5502,7 +5502,7 @@ rc-update add zapret2
 7. Останов : `systemctl stop nfqws2@INSTANCE`
 8. Перезапуск : `systemctl restart nfqws2@INSTANCE`
 
-Этот способ не поднимает правила ip/nf tables - вам это придется сделать отдельно, как и написать сами правила. Правила нужно прописать куда-то, чтобы они поднимались после старта системы. Например, можно сделать отдельный systemd unit с запуском шелл скрипта или `nft -f /path/to/file.nft`.
+Этот способ не поднимает правила iptables/nftables - вам это придется сделать отдельно, как и написать сами правила. Правила нужно прописать куда-то, чтобы они поднимались после старта системы. Например, можно сделать отдельный systemd unit с запуском шелл скрипта или `nft -f /path/to/file.nft`.
 
 # Другие прошивки
 
