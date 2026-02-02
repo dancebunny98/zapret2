@@ -565,10 +565,10 @@ pass out quick on $IFACE_WAN proto udp to port { $PORTS_UDP } divert-packet port
 
 ## Traffic interception in the Windows kernel
 
-Windows lacks native tools for traffic interception. Instead, a third-party solution is used: the `windivert` driver.
+Windows lacks native tools for traffic interception. Instead, a third-party solution is used: the `WinDivert` driver.
 Control is integrated directly into the `winws2` process.
 
-`windivert` accepts [text-based filters](https://reqrypt.org/windivert-doc.html#filter_language) similar to those used by Wireshark and tcpdump.
+`WinDivert` accepts [text-based filters](https://reqrypt.org/windivert-doc.html#filter_language) similar to those used by Wireshark and tcpdump.
 These filters support filtering by IP (without ipset), ports, and raw payloads. However, they do not support bitwise logical operations, bit shifts, flow tracking, or limiting interception to the first few packets of a connection.
 
 The WinDivert driver is no longer under active development. However, signed versions of the driver are available that are compatible with all modern Windows releases, though only for the x86_64 architecture. For ARM64, there is an unsigned driver that requires enabling Test Signing mode.
@@ -998,7 +998,7 @@ In the event of a violation, the process is terminated. If the kernel does not s
 
 Windows:
 
-- While the `windivert` driver requires administrator privileges, the `winws2` process sets its own integrity level to Low Mandatory Level after initialization. This prevents write access to almost all files and objects protected by a security descriptor. The process can no longer manage services or perform privileged actions. However, the Administrators group remains in the process token, so nothing prevents reading most files if they are accessible to Administrators. Lua lacks built-in tools for reading directory contents, making it difficult for an attacker to discover files of interest.
+- While the `WinDivert` driver requires administrator privileges, the `winws2` process sets its own integrity level to Low Mandatory Level after initialization. This prevents write access to almost all files and objects protected by a security descriptor. The process can no longer manage services or perform privileged actions. However, the Administrators group remains in the process token, so nothing prevents reading most files if they are accessible to Administrators. Lua lacks built-in tools for reading directory contents, making it difficult for an attacker to discover files of interest.
 - All `Se*` privileges are irrevocably removed from the token, except for `SeChangeNotifyPrivilege`.
 - A Job object is used to prohibit the creation of child processes and restrict desktop interaction - clipboard access, changing desktop settings, changing display settings, etc.
 
@@ -1393,7 +1393,7 @@ All multi-byte numeric values are automatically converted from network byte orde
 | transport_len | number | packet length excluding L3 headers                                |
 | l3_len        | number | length of L3 headers, including IP options and IPv6 extension headers |
 | l4_len        | number | length of the L4 header, including TCP options                   |
-| payload       | string | L4 payload                                                       |
+| payload       | string | L4 payload or everything after L3 headers in case of raw IP      |
 
 **ip**
 
@@ -2134,7 +2134,7 @@ Interface table contents :
 | mtu               | number | MTU. for loopback can be 64K or even 0xFFFFFFFF |
 | flags             | number | os-specific bit flags |
 | ssid              | string | wifi SSID if known. SSIDs are obtained only if `--filter-ssid` is used in any profile |
-| guid<br>iftype<br>index6<br>speed_xmit<br>speed_recv<br>metric4<br>metric6<br>conntype<br> | number | (windows only) additional fields from GetAdaptersAddresses() |
+| guid<br>iftype<br>index6<br>speed_xmit<br>speed_recv<br>metric4<br>metric6<br>conntype<br> | number | (Windows only) additional fields from GetAdaptersAddresses() |
 | addr              | table  | integer indexed array of addresses |
 
 Address contents :
@@ -2271,8 +2271,8 @@ Returns an array of information about all subsequent, pending instances in the c
 | func_n         | number | instance number within the profile                                                                                                        |
 | func_instance  | string | instance name (derived from the function name, instance number, and profile number)                                                       |
 | range          | table  | effective range of [counters](#in-profile-filters) `--in-range` or `--out-range` depending on the current direction                       |
-| payload        | table  | effective `--payload-filter` . payload name indexed table.                                                                                |
-| payload_filter | string | effective `--payload-filter`. A comma-separated list of payload names.                                                                    |
+| payload        | table  | effective payload filter : payload name indexed table.                                                                                |
+| payload_filter | string | effective payload filter : a comma-separated list of payload names.                                                                    |
 
 **range**
 
@@ -4088,7 +4088,7 @@ function udplen(ctx, desync)
 - arg: pattern_offset - initial offset within the pattern
 - default payload filter - "known"
 
-The function increases or decreases the length of the UDP L4 payload. When decreasing, part of the information is truncated and lost; when increasing, the extra space is filled with the `pattern`. UDP segmentation is impossible - if the MTU or PMTU is exceeded, the packet will be fragmented by OS on IP level. An error in case of exceeding the MTU will only be reported on Linux; other systems will silently fail to send the packet (windivert and ipdivert have no means of error detection).
+The function increases or decreases the length of the UDP L4 payload. When decreasing, part of the information is truncated and lost; when increasing, the extra space is filled with the `pattern`. UDP segmentation is impossible - if the MTU or PMTU is exceeded, the packet will be fragmented by OS on IP level. An error in case of exceeding the MTU will only be reported on Linux; other systems will silently fail to send the packet (WinDivert and ipdivert have no means of error detection).
 
 ### dht_dn
 
@@ -5385,13 +5385,13 @@ cygwin prompt is pre-configured with aliases for blockcheck, blockcheck2, winws,
 
 ## Windows 7
 
-Requirements for windows driver signing have changed in 2021.
-Official free updates of windows 7 ended in 2020.
+Requirements for Windows driver signing have changed in 2021.
+Official free updates of Windows 7 ended in 2020.
 After 2020 for the years paid updates were available (ESU).
-One of the updates from ESU enables signatures used in windivert 2.2.2-A.
+One of the updates from ESU enables signatures used in WinDivert 2.2.2-A.
 There are several options :
 
-1. Take `windivert64.sys` and `windivert.dll` version `2.2.0-C` or `2.2.0-D` from [here](https://reqrypt.org/download) and replace existing files.
+1. Take `WinDivert64.sys` and `WinDivert.dll` version `2.2.0-C` or `2.2.0-D` from [here](https://reqrypt.org/download) and replace existing files.
 
 2. [Hack ESU](https://hackandpwn.com/windows-7-esu-patching)
 
@@ -5407,7 +5407,7 @@ Then reboot the system.
 
 ## Windows ARM64
 
-The main problem is lack of a signed windivert driver. Therefore, it is required to enable the test signature mode: 'bcdedit/set {current} testsigning on'.
+The main problem is lack of a signed WinDivert driver. Therefore, it is required to enable the test signature mode: 'bcdedit/set {current} testsigning on'.
 There's unsigned WinDivert64.sys driver in [zapret-win-bundle](https://github.com/bol-van/zapret-win-bundle).
 There is also cmd file for rolling the driver to the arm64 Win11.
 
