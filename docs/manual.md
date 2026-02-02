@@ -1734,7 +1734,7 @@ desync.track всегда отсутствует.
 | qnum  | number | номер очереди NFQUEUE | только в Linux |
 | divert_port | number | номер порта divert | только в BSD |
 | desync_fwmark | number | fwmark для Linux, sockarg для BSD, 0 в Windows | |
-| NFQWS2_VER | string | версия nfqws2 | строка, выводимая по --version |
+| NFQWS2_VER | string | версия nfqws2 | строка, выводимая по `--version` |
 | NFQWS2_COMPAT_VER | number | порядковый номер несовместимых изменений интерфейса с nfqws2 | увеличивается на 1 после каждого изменения |
 | b_debug | bool   | включен --debug | вывод отладочных сообщений |
 | b_daemon | bool   | включен --daemon | демонизация процесса, отвязка от tty |
@@ -1764,14 +1764,14 @@ desync.track всегда отсутствует.
 | IPV6_FLOWLABEL_MASK  | number | flow label в ip6_flow      | 0x000FFFFF  |
 | IPV6_FLOWINFO_MASK   | number | flow label, traffic class в ip6_flow | 0x0FFFFFFF  |
 | IPPROTO_IP<br>IPPROTO_IPV6<br>IPPROTO_IPIP<br>IPPROTO_ICMP<br>IPPROTO_ICMPV6<br>IPPROTO_TCP<br>IPPROTO_UDP<br>IPPROTO_SCTP<br>IPPROTO_HOPOPTS<br>IPPROTO_ROUTING<br>IPPROTO_FRAGMENT<br>IPPROTO_AH<br>IPPROTO_ESP<br>IPPROTO_DSTOPTS<br>IPPROTO_MH<br>IPPROTO_HIP<br>IPPROTO_SHIM6<br>IPPROTO_NONE | number | [номера IP протоколов](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml) | используются в ipv4 и ipv6  |
-| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<brICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [типы icmp](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) | |
-| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | коды icmp для destination unreachable | |
-| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | коды icmp для icmp redirect | |
-| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | коды icmp для time exceeded | |
-| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [типы icmpv6](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) | |
-| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | коды icmpv6 для destination unreachable | |
-| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | коды icmpv6 для time exceeded | |
-| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | коды icmpv6 для parameter problem | |
+| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<brICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [типы icmp](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) |только ipv4 |
+| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | коды icmp для destination unreachable | только ipv4 |
+| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | коды icmp для icmp redirect |только ipv4 |
+| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | коды icmp для time exceeded | только ipv4 |
+| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [типы icmpv6](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) | только ipv6 |
+| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | коды icmpv6 для destination unreachable | только ipv6 |
+| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | коды icmpv6 для time exceeded | только ipv6 |
+| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | коды icmpv6 для parameter problem | только ipv6 |
 
 ## Стандартные блобы
 

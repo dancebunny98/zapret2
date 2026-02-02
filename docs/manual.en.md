@@ -1591,7 +1591,7 @@ Before executing `--lua-init`, the C code sets up base constants, blobs, and C f
 | qnum | number | NFQUEUE queue number | Linux only |
 | divert_port | number | divert port number | BSD only |
 | desync_fwmark | number | fwmark for Linux, sockarg for BSD, 0 for Windows | |
-| NFQWS2_VER | string | nfqws2 version | string returned by --version |
+| NFQWS2_VER | string | nfqws2 version | string returned by `--version` |
 | NFQWS2_COMPAT_VER | number | sequence number of incompatible interface changes with nfqws2 | incremented by 1 for each change |
 | b_debug | bool | --debug enabled | debug message output |
 | b_daemon | bool | --daemon enabled | daemonize process, detach from tty |
@@ -1621,14 +1621,14 @@ Before executing `--lua-init`, the C code sets up base constants, blobs, and C f
 | IPV6_FLOWLABEL_MASK | number | flow label in ip6_flow | 0x000FFFFF |
 | IPV6_FLOWINFO_MASK | number | flow label and traffic class in ip6_flow | 0x0FFFFFFF  |
 | IPPROTO_IP<br>IPPROTO_IPV6<br>IPPROTO_ICMP<br>IPPROTO_ICMPV6<br>IPPROTO_TCP<br>IPPROTO_UDP<br>IPPROTO_SCTP<br>IPPROTO_HOPOPTS<br>IPPROTO_ROUTING<br>IPPROTO_FRAGMENT<br>IPPROTO_AH<br>IPPROTO_ESP<br>IPPROTO_DSTOPTS<br>IPPROTO_MH<br>IPPROTO_HIP<br>IPPROTO_SHIM6<br>IPPROTO_NONE | number | [IP protocol numbers](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml) | used in IPv4 and IPv6 |
-| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<brICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [icmp types](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) | |
-| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | icmp codes for destination unreachable | |
-| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | icmp codes for redirect | |
-| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | icmp codes for time exceeded | |
-| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [icmpv6 types](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) | |
-| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | icmpv6 code for destination unreachable |
-| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | icmpv6 codes for time exceeded | |
-| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | icmpv6 codes for parameter problem | |
+| ICMP_ECHOREPLY<br>ICMP_DEST_UNREACH<br>ICMP_REDIRECT<br>ICMP_ECHO<br>ICMP_TIME_EXCEEDED<brICMP_PARAMETERPROB<br>ICMP_TIMESTAMP<br>ICMP_TIMESTAMPREPLY<br>ICMP_INFO_REQUEST<br>ICMP_INFO_REPLY | number | [icmp types](https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml) | ipv4 only |
+| ICMP_UNREACH_NET<br>ICMP_UNREACH_HOST<br>ICMP_UNREACH_PROTOCOL<br>ICMP_UNREACH_PORT<br>ICMP_UNREACH_NEEDFRAG<br>ICMP_UNREACH_SRCFAIL<br>ICMP_UNREACH_NET_UNKNOWN<br>ICMP_UNREACH_HOST_UNKNOWN<br>ICMP_UNREACH_NET_PROHIB<br>ICMP_UNREACH_HOST_PROHIB<br>ICMP_UNREACH_TOSNET<br>ICMP_UNREACH_TOSHOST<br>ICMP_UNREACH_FILTER_PROHIB<br>ICMP_UNREACH_HOST_PRECEDENCE<br>ICMP_UNREACH_PRECEDENCE_CUTOFF | number | icmp codes for destination unreachable | ipv4 only |
+| ICMP_REDIRECT_NET<br>ICMP_REDIRECT_HOST<br>ICMP_REDIRECT_TOSNET<br>ICMP_REDIRECT_TOSHOST | number | icmp codes for redirect | ipv4 only |
+| ICMP_TIMXCEED_INTRANS<br>ICMP_TIMXCEED_REASS | number | icmp codes for time exceeded | ipv4 only |
+| ICMP6_ECHO_REQUEST<br>ICMP6_ECHO_REPLY<br>ICMP6_DST_UNREACH<br>ICMP6_PACKET_TOO_BIG<br>ICMP6_TIME_EXCEEDED<br>ICMP6_PARAM_PROB<br>MLD_LISTENER_QUERY<br>MLD_LISTENER_REPORT<br>MLD_LISTENER_REDUCTION<br>ND_ROUTER_SOLICIT<br>ND_ROUTER_ADVERT<br>ND_NEIGHBOR_SOLICIT<br>ND_NEIGHBOR_ADVERT<br>ND_REDIRECT | number | [icmpv6 types](https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml) | ipv6 only |
+| ICMP6_DST_UNREACH_NOROUTE<br>ICMP6_DST_UNREACH_ADMIN<br>ICMP6_DST_UNREACH_BEYONDSCOPE<br>ICMP6_DST_UNREACH_ADDR<br>ICMP6_DST_UNREACH_NOPORT | number | icmpv6 code for destination unreachable | ipv6 only |
+| ICMP6_TIME_EXCEED_TRANSIT<br>ICMP6_TIME_EXCEED_REASSEMBLY | number | icmpv6 codes for time exceeded | ipv6 only |
+| ICMP6_PARAMPROB_HEADER<br>ICMP6_PARAMPROB_NEXTHEADER<br>ICMP6_PARAMPROB_OPTION | number | icmpv6 codes for parameter problem | ipv6 only |
 
 
 ## Standard blobs
