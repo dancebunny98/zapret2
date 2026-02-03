@@ -374,6 +374,7 @@ void print_icmphdr(const struct icmp46 *icmp, bool v6)
 bool proto_check_ipv4(const uint8_t *data, size_t len)
 {
 	if (len < sizeof(struct ip)) return false;
+	if (((struct ip*)data)->ip_v!=4) return false;
 	uint8_t off = ((struct ip*)data)->ip_hl << 2;
 	return off>=sizeof(struct ip) && len>=off;
 }
