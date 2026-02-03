@@ -1415,7 +1415,7 @@ void lua_push_icmphdr(lua_State *L, const struct icmp46 *icmp, size_t len)
 		lua_pushf_int(L,"icmp_type",icmp->icmp_type);
 		lua_pushf_int(L,"icmp_code",icmp->icmp_code);
 		lua_pushf_int(L,"icmp_cksum",ntohs(icmp->icmp_cksum));
-		lua_pushf_int(L,"icmp_data",ntohl(icmp->icmp_data32));
+		lua_pushf_lint(L,"icmp_data",ntohl(icmp->icmp_data32));
 	}
 	else
 		lua_pushnil(L);
