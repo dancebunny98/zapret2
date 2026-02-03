@@ -2134,7 +2134,7 @@ function stat(filename)
 | inode    | number | inode. на Windows не влезает в тип number luajit, но влезает в integer Lua 5.3+ |
 | dev      | number | device id |
 
-В случае неудачи возвращает 3 результата : nil, строка ошибки, код ошибки errno.
+В случае неудачи возвращает 3 значения : nil, строка ошибки, код ошибки errno.
 
 
 ### Опции по работе с пакетами
