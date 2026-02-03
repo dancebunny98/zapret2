@@ -1984,7 +1984,7 @@ If successful returns the following table :
 | type     | string | file type : file, dir,  socket, blockdev, chardev, fifo, unknown |
 | size     | number | file size |
 | mtime    | number | modification unixtime in floating point format |
-| inode    | number | inode. In Windows doesn't fit into number datatype in luajit but fits into integer datatype of Lua5.3+ |
+| inode    | number | inode. In Windows doesn't fit into number datatype of luajit but fits into integer datatype of Lua5.3+ |
 | dev      | number | device id |
 
 In case of error returns 3 values : nil, error string, error number (errno).
