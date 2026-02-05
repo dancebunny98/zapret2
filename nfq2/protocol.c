@@ -30,7 +30,7 @@ static bool FindNLD(const uint8_t *dom, size_t dlen, int level, const uint8_t **
 }
 
 static const char *l7proto_name[] = {
-"all","unknown","known","http","tls","dtls","quic","wireguard","dht","discord","stun","xmpp","dns","mtproto"
+"all","unknown","known","http","tls","dtls","quic","wireguard","dht","discord","stun","xmpp","dns","mtproto","bt","utp_bt"
 };
 const char *l7proto_str(t_l7proto l7)
 {
@@ -58,7 +58,9 @@ static const char *l7payload_name[] = {
  "dht","discord_ip_discovery","stun",
  "xmpp_stream", "xmpp_starttls", "xmpp_proceed", "xmpp_features",
  "dns_query", "dns_response",
- "mtproto_initial"};
+ "mtproto_initial",
+ "bt_handshake", "utp_bt_handshake"
+};
 t_l7payload l7payload_from_name(const char *name)
 {
 	int idx = str_index(l7payload_name,sizeof(l7payload_name)/sizeof(*l7payload_name),name);
@@ -1484,4 +1486,15 @@ bool IsDTLSClientHello(const uint8_t *data, size_t len)
 bool IsDTLSServerHello(const uint8_t *data, size_t len)
 {
 	return IsDTLS(data,len) && data[0]==0x16 && data[13]==2;
+}
+
+bool IsBTHandshake(const uint8_t *data, size_t len)
+{
+	// len, pstrlen, reserved, sha1, peer id
+	return len>=(1+19+8+20+20) && !memcmp(data,"\x13" "BitTorrent protocol",20);
+}
+bool IsUTP_BTHandshake(const uint8_t *data, size_t len)
+{
+	// len, pstrlen, reserved, sha1, peer id
+	return len>=(20+1+19+8+20+20) && data[0]==0x01 && !memcmp(data+20,"\x13" "BitTorrent protocol",20);;
 }

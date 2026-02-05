@@ -1452,7 +1452,8 @@ static uint8_t dpi_desync_tcp_packet_play(
 				{L7P_HTTP_REPLY,L7_HTTP,IsHttpReply,false},
 				{L7P_XMPP_STREAM,L7_XMPP,IsXMPPStream,false},
 				{L7P_XMPP_PROCEED,L7_XMPP,IsXMPPProceedTLS,false},
-				{L7P_XMPP_FEATURES,L7_XMPP,IsXMPPFeatures,false}
+				{L7P_XMPP_FEATURES,L7_XMPP,IsXMPPFeatures,false},
+				{L7P_BT_HANDSHAKE,L7_BT,IsBTHandshake,false}
 			};
 			protocol_probe(testers, sizeof(testers) / sizeof(*testers), dis->data_payload, dis->len_payload, ps.ctrack, &ps.l7proto, &ps.l7payload);
 
@@ -1532,10 +1533,11 @@ static uint8_t dpi_desync_tcp_packet_play(
 		if (!ps.ctrack_replay || ReasmIsEmpty(&ps.ctrack_replay->reasm_client))
 		{
 			t_protocol_probe testers[] = {
-				{L7P_TLS_CLIENT_HELLO,L7_TLS,IsTLSClientHelloPartial},
+				{L7P_TLS_CLIENT_HELLO,L7_TLS,IsTLSClientHelloPartial,false},
 				{L7P_HTTP_REQ,L7_HTTP,IsHttp,false},
 				{L7P_XMPP_STREAM,L7_XMPP,IsXMPPStream,false},
-				{L7P_XMPP_STARTTLS,L7_XMPP,IsXMPPStartTLS,false}
+				{L7P_XMPP_STARTTLS,L7_XMPP,IsXMPPStartTLS,false},
+				{L7P_BT_HANDSHAKE,L7_BT,IsBTHandshake,false}
 			};
 			protocol_probe(testers, sizeof(testers) / sizeof(*testers), rdata_payload, rlen_payload, ps.ctrack_replay, &ps.l7proto, &ps.l7payload);
 
@@ -1545,7 +1547,7 @@ static uint8_t dpi_desync_tcp_packet_play(
 				if (ps.tpos && (ps.tpos->client.seq_last - ps.tpos->client.seq0)==1)
 				{
 					t_protocol_probe testers[] = {
-						{L7P_MTPROTO_INITIAL,L7_MTPROTO,IsMTProto}
+						{L7P_MTPROTO_INITIAL,L7_MTPROTO,IsMTProto,false}
 					};
 					protocol_probe(testers, sizeof(testers) / sizeof(*testers), rdata_payload, rlen_payload, ps.ctrack_replay, &ps.l7proto, &ps.l7payload);
 				}
@@ -1628,6 +1630,7 @@ static void udp_standard_protocol_probe(const uint8_t *data_payload, size_t len_
 		{L7P_DHT,L7_DHT,IsDht,false},
 		{L7P_DTLS_CLIENT_HELLO,L7_DTLS,IsDTLSClientHello,false},
 		{L7P_DTLS_SERVER_HELLO,L7_DTLS,IsDTLSServerHello,false},
+		{L7P_UTP_BT_HANDSHAKE,L7_UTP_BT,IsUTP_BTHandshake,false},
 		{L7P_WIREGUARD_INITIATION,L7_WIREGUARD,IsWireguardHandshakeInitiation,false},
 		{L7P_WIREGUARD_RESPONSE,L7_WIREGUARD,IsWireguardHandshakeResponse,false},
 		{L7P_WIREGUARD_COOKIE,L7_WIREGUARD,IsWireguardHandshakeCookie,false},

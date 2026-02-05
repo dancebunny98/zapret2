@@ -20,6 +20,8 @@ typedef enum {
 	L7_XMPP,
 	L7_DNS,
 	L7_MTPROTO,
+	L7_BT,
+	L7_UTP_BT,
 	L7_LAST, L7_INVALID=L7_LAST, L7_NONE=L7_LAST
 } t_l7proto;
 const char *l7proto_str(t_l7proto l7);
@@ -56,6 +58,8 @@ typedef enum {
 	L7P_DNS_QUERY,
 	L7P_DNS_RESPONSE,
 	L7P_MTPROTO_INITIAL,
+	L7P_BT_HANDSHAKE,
+	L7P_UTP_BT_HANDSHAKE,
 	L7P_LAST, L7P_INVALID=L7P_LAST, L7P_NONE=L7P_LAST
 } t_l7payload;
 t_l7payload l7payload_from_name(const char *name);
@@ -160,7 +164,8 @@ bool IsMTProto(const uint8_t *data, size_t len);
 bool IsDTLS(const uint8_t *data, size_t len);
 bool IsDTLSClientHello(const uint8_t *data, size_t len);
 bool IsDTLSServerHello(const uint8_t *data, size_t len);
-
+bool IsBTHandshake(const uint8_t *data, size_t len);
+bool IsUTP_BTHandshake(const uint8_t *data, size_t len);
 
 #define QUIC_MAX_CID_LENGTH  20
 typedef struct quic_cid {
