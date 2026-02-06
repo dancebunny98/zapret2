@@ -532,14 +532,15 @@ bool alloc_windivert_portfilters(struct params_s *params)
 		&params->wf_ipf_in, &params->wf_ipf_out};
 	for (int i=0 ; i<(sizeof(wdbufs)/sizeof(*wdbufs)) ; i++)
 	{
-		if (!(*wdbufs[i] = malloc(WINDIVERT_PORTFILTER_MAX)))
-			return false;
+		if (!(*wdbufs[i] = malloc(WINDIVERT_PORTFILTER_MAX))) goto err;
 		**wdbufs[i] = 0;
 	}
-	if (!(params->wf_raw_filter = malloc(WINDIVERT_MAX)))
-		return false;
+	if (!(params->wf_raw_filter = malloc(WINDIVERT_MAX))) goto err;
 	*params->wf_raw_filter = 0;
 	return true;
+err:
+	cleanup_windivert_portfilters(params);
+	return false;
 }
 #endif
 void cleanup_params(struct params_s *params)
@@ -607,5 +608,4 @@ void init_params(struct params_s *params)
 		params->droproot = true;
 	}
 #endif
-
 }
