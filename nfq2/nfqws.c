@@ -170,7 +170,7 @@ static void fuzzPacketData(unsigned int count)
 		if (bQuit) break;
 		if (!(k%1000)) DLOG_CONDUP("fuzz ct=%u\n",k);
 		len = random()%(FUZZ_MAX_PACKET_SIZE+1);
-		packet = malloc(len); // alloc every time to catch uninitialized reads
+		if (!(packet = malloc(len))) return; // alloc every time to catch uninitialized reads
 		fill_random_bytes(packet,len);
 		if (len)
 		{
