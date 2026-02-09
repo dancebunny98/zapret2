@@ -87,7 +87,7 @@ bool AppendHostList(hostlist_pool **hostlist, const char *filename)
 	{
 		DLOG_CONDUP("loading plain text list\n");
 
-		while (fgets(s, sizeof(s), F))
+		while (fgets_safe(s, sizeof(s), F))
 		{
 			p = s;
 			if (!addpool(hostlist,&p,p+strlen(p),&ct))

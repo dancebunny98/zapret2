@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "helpers.h"
 
 #define ZCHUNK 16384
 #define BUFMIN 128
@@ -25,7 +26,7 @@ int z_readfile(FILE *F, char **buf, size_t *size, size_t extra_alloc)
 
 	do
 	{
-		zs.avail_in = fread(in, 1, sizeof(in), F);
+		zs.avail_in = fread_safe(in, 1, sizeof(in), F);
 		if (ferror(F))
 		{
 			r = Z_ERRNO;
@@ -78,7 +79,7 @@ zerr:
 bool is_gzip(FILE* F)
 {
 	unsigned char magic[2];
-	bool b = !fseek(F, 0, SEEK_SET) && fread(magic, 1, 2, F) == 2 && magic[0] == 0x1F && magic[1] == 0x8B;
+	bool b = !fseek(F, 0, SEEK_SET) && fread_safe(magic, 1, 2, F) == 2 && magic[0] == 0x1F && magic[1] == 0x8B;
 	fseek(F, 0, SEEK_SET);
 	return b;
 }

@@ -625,7 +625,7 @@ static int dvt_main(void)
 			if (FD_ISSET(fd[i], &fdset))
 			{
 				socklen = sizeof(sa_from);
-				rd = recvfrom(fd[i], buf, sizeof(buf), 0, (struct sockaddr*)&sa_from, &socklen);
+				while ((rd = recvfrom(fd[i], buf, sizeof(buf), 0, (struct sockaddr*)&sa_from, &socklen))<0 && errno==EINTR);
 				if (rd < 0)
 				{
 					DLOG_PERROR("recvfrom");
