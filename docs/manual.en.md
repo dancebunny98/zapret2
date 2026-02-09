@@ -4454,7 +4454,7 @@ function cond_payload_str(desync)
 Returns `true` if the substring `pattern` is present in `desync.dis.payload`.
 This is a basic signature detector. If the C code does not recognize the protocol you need, you can write your own signature detector and run subsequent instances under a `condition` orchestrator using your detector as the `iff` function.
 
-#### cond_tcp_ts_has_ts
+#### cond_tcp_has_ts
 
 ```
 function cond_tcp_ts(desync)

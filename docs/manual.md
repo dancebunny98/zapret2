@@ -4633,7 +4633,7 @@ function cond_payload_str(desync)
 Возвращает true, если в desync.dis.payload присутствует подстрока pattern.
 Это простейший сигнатурый детектор. Если C код не распознает нужный вам протокол, вы можете написать свой сигнатурный детектор и запускать последующие инстансы под оркестратором condition с вашим детектором в качестве iff.
 
-#### cond_tcp_ts_has_ts
+#### cond_tcp_has_ts
 
 ```
 function cond_tcp_ts(desync)
