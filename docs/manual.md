@@ -215,6 +215,7 @@
     - [circular](#circular)
     - [repeater](#repeater)
     - [condition](#condition)
+    - [per_instance_condition](#per_instance_condition)
     - [stopif](#stopif)
     - [iff функции](#iff-функции)
       - [cond\_true](#cond_true)
@@ -2484,6 +2485,7 @@ function execution_plan(ctx)
 | range          | table  | эффективный диапазон [счетчиков](#внутрипрофильные-фильтры) `--in-range` или `--out-range` в зависимости от текущего направления |
 | payload        | table  | эффективный фильтр payload . таблица с индексами - названиями типа пейлоада                                                  |
 | payload_filter | string | эффективный фильтр payload . список названий пейлоадов через запятую (иное представление payload)                            |
+| arg            | table  | аргументы инстанса |
 
 **range**
 
@@ -4565,6 +4567,15 @@ function condition(ctx, desync)
 - arg: neg - инвертировать значение iff. по умолчанию - false
 
 condition вызывает iff. если iff xor neg = true, выполняются все инстансы plan, иначе план очищается.
+
+### per_instance_condition
+
+```
+function per_instance_condition(ctx, desync)
+```
+
+Все последующие инстасы вызываются только, если у них есть аргумент "cond", содержащий iff функцию, и она возвращает true. Аргумент "cond_neg" инвертирует ее значение.
+Имена аргументов не iff/neg, чтобы исключить конфликт с другими оркестраторами.
 
 ### stopif
 

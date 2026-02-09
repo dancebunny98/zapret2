@@ -232,3 +232,4 @@ winws2: fixed lost windivert deinit on logical network disappear
 0.9.3
 
 nfqws2: handling of incoming fragmented packets (no reconstruct, raw ip payload)
+zapret-auto: per_instance_condition orchestrator

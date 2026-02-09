@@ -218,6 +218,7 @@
     - [circular](#circular)
     - [repeater](#repeater)
     - [condition](#condition)
+    - [per_instance_condition](#per_instance_condition)
     - [stopif](#stopif)
     - [iff functions](#iff-functions)
       - [cond\_true](#cond_true)
@@ -2330,6 +2331,7 @@ Returns an array of information about all subsequent, pending instances in the c
 | range          | table  | effective range of [counters](#in-profile-filters) `--in-range` or `--out-range` depending on the current direction                       |
 | payload        | table  | effective payload filter : payload name indexed table.                                                                                |
 | payload_filter | string | effective payload filter : a comma-separated list of payload names.                                                                    |
+| arg            | table  | instance arguments |
 
 **range**
 
@@ -4385,6 +4387,16 @@ function condition(ctx, desync)
 - arg: `neg` - invert the `iff` value; defaults to `false`
 
 `condition` calls `iff`. If `iff xor neg = true`, all instances in the `plan` are executed; otherwise, the plan is cleared.
+
+### per_instance_condition
+
+```
+function per_instance_condition(ctx, desync)
+```
+
+All following instanced are called only if they have "cond" argument with the "iff" function name and it returns true. The "cond_neg" argument inverts "cond" result.
+Names are not iff/neg to avoid conflict with other orchestrators.
+
 
 ### stopif
 
