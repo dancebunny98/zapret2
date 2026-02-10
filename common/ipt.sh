@@ -1,7 +1,7 @@
-std_ports
 ipt_connbytes="-m connbytes --connbytes-dir=original --connbytes-mode=packets --connbytes"
 IPSET_EXCLUDE="-m set ! --match-set nozapret"
 IPSET_EXCLUDE6="-m set ! --match-set nozapret6"
+IPSET_PORTS_NAME=zport
 
 ipt()
 {
@@ -227,6 +227,16 @@ fw_reverse_nfqws_rule()
 	fw_reverse_nfqws_rule6 $1 "$3" $4
 }
 
+ipt_port_ipset()
+{
+	# $1 - ipset name
+	# $2 - ports
+	ipset -q flush $1 || {
+		ipset create $1 bitmap:port range 0-65535 || return
+	}
+	echo "$2" | tr ',' '\n' | sed -nEe "s/^.+$/add $1 &/p" | ipset -! restore
+}
+
 ipt_first_packets()
 {
 	# $1 - packet count
@@ -239,12 +249,17 @@ ipt_do_nfqws_in_out()
 	# $3 - ports
 	# $4 - PKT_OUT. special value : 'keepalive'
 	# $5 - PKT_IN
-	local f4 f6 first_packets_only
+	local f4 f6 first_packets_only ipset
 	[ -n "$3" ] || return
+	ipset=${IPSET_PORTS_NAME}_$2
+	[ "$4" = keepalive ] && ipset="${ipset}_k"
+	[ "$1" = 1 ] && {
+		ipt_port_ipset $ipset "$3" || return
+	}
 	[ -n "$4" -a "$4" != 0 ] &&
 	{
 		first_packets_only="$(ipt_first_packets $4)"
-		f4="-p $2 -m multiport --dports $3 $first_packets_only"
+		f4="-p $2 -m set --match-set $ipset dst $first_packets_only"
 		f6=$f4
 		filter_apply_ipset_target f4 f6
 		fw_nfqws_post $1 "$f4" "$f6" $QNUM
@@ -252,11 +267,12 @@ ipt_do_nfqws_in_out()
 	[ -n "$5" -a "$5" != 0 ] &&
 	{
 		first_packets_only="$(ipt_first_packets $5)"
-		f4="-p $2 -m multiport --dports $3  $first_packets_only"
+		f4="-p $2 -m set --match-set $ipset dst $first_packets_only"
 		f6=$f4
 		filter_apply_ipset_target f4 f6
 		fw_reverse_nfqws_rule $1 "$f4" "$f6" $QNUM
 	}
+	[ "$1" = 1 ] || ipset -q destroy $ipset
 }
 
 zapret_do_firewall_standard_nfqws_rules_ipt()
@@ -264,10 +280,10 @@ zapret_do_firewall_standard_nfqws_rules_ipt()
 	# $1 - 1 - add, 0 - del
 
 	[ "$NFQWS2_ENABLE" = 1 ] && {
-		ipt_do_nfqws_in_out $1 tcp "$NFQWS2_PORTS_TCP_IPT" "$NFQWS2_TCP_PKT_OUT" "$NFQWS2_TCP_PKT_IN"
-		ipt_do_nfqws_in_out $1 tcp "$NFQWS2_PORTS_TCP_KEEPALIVE_IPT" keepalive "$NFQWS2_TCP_PKT_IN"
-		ipt_do_nfqws_in_out $1 udp "$NFQWS2_PORTS_UDP_IPT" "$NFQWS2_UDP_PKT_OUT" "$NFQWS2_UDP_PKT_IN"
-		ipt_do_nfqws_in_out $1 udp "$NFQWS2_PORTS_UDP_KEEPALIVE_IPT" keepalive "$NFQWS2_UDP_PKT_IN"
+		ipt_do_nfqws_in_out $1 tcp "$NFQWS2_PORTS_TCP" "$NFQWS2_TCP_PKT_OUT" "$NFQWS2_TCP_PKT_IN"
+		ipt_do_nfqws_in_out $1 tcp "$NFQWS2_PORTS_TCP_KEEPALIVE" keepalive "$NFQWS2_TCP_PKT_IN"
+		ipt_do_nfqws_in_out $1 udp "$NFQWS2_PORTS_UDP" "$NFQWS2_UDP_PKT_OUT" "$NFQWS2_UDP_PKT_IN"
+		ipt_do_nfqws_in_out $1 udp "$NFQWS2_PORTS_UDP_KEEPALIVE" keepalive "$NFQWS2_UDP_PKT_IN"
 	}
 }
 zapret_do_firewall_standard_rules_ipt()

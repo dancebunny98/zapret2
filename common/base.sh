@@ -426,14 +426,6 @@ alloc_num()
 	eval $1="$v"
 }
 
-std_ports()
-{
-	NFQWS2_PORTS_TCP_IPT=$(replace_char - : $NFQWS2_PORTS_TCP)
-	NFQWS2_PORTS_TCP_KEEPALIVE_IPT=$(replace_char - : $NFQWS2_PORTS_TCP_KEEPALIVE)
-	NFQWS2_PORTS_UDP_IPT=$(replace_char - : $NFQWS2_PORTS_UDP)
-	NFQWS2_PORTS_UDP_KEEPALIVE_IPT=$(replace_char - : $NFQWS2_PORTS_UDP_KEEPALIVE)
-}
-
 has_bad_ws_options()
 {
 	# $1 - nfqws2 opts

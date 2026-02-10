@@ -3,7 +3,6 @@ nft_connbytes="ct original packets"
 
 # required for : nft -f -
 create_dev_stdin
-std_ports
 
 nft_create_table()
 {

@@ -56,6 +56,7 @@ volatile sig_atomic_t bQuit = false;
 
 static void onhup(int sig)
 {
+	// async safe
 	if (bQuit) return;
 
 	const char *msg = "HUP received ! Lists will be reloaded.\n";
@@ -84,6 +85,7 @@ static void ReloadCheck()
 
 static void onusr1(int sig)
 {
+	// this is debug-only signal. no async safety
 	if (bQuit) return;
 
 	printf("\nCONNTRACK DUMP\n");
@@ -92,6 +94,7 @@ static void onusr1(int sig)
 }
 static void onusr2(int sig)
 {
+	// this is debug-only signal. no async safety
 	if (bQuit) return;
 
 	printf("\nHOSTFAIL POOL DUMP\n");
@@ -108,6 +111,7 @@ static void onusr2(int sig)
 }
 static void onint(int sig)
 {
+	// theoretically lua_sethook is not async-safe. but it's one-time signal
 	if (bQuit) return;
 	const char *msg = "INT received !\n";
 	size_t wr = write(1, msg, strlen(msg));
@@ -116,6 +120,7 @@ static void onint(int sig)
 }
 static void onterm(int sig)
 {
+	// theoretically lua_sethook is not async-safe. but it's one-time signal
 	if (bQuit) return;
 	const char *msg = "TERM received !\n";
 	size_t wr = write(1, msg, strlen(msg));
