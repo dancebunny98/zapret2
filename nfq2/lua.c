@@ -42,6 +42,7 @@ typedef struct _SOCKET_ADDRESS {
 #include "params.h"
 #include "gzip.h"
 #include "helpers.h"
+#include "nfqws.h"
 #include "conntrack.h"
 #include "crypto/sha.h"
 #include "crypto/aes-gcm.h"
@@ -3783,7 +3784,7 @@ static void lua_perror(lua_State *L)
 	}
 	lua_pop(L, 1);
 }
-static int lua_panic (lua_State *L)
+static int lua_panic(lua_State *L)
 {
 	lua_perror(L);
 	DLOG_ERR("LUA PANIC: THIS IS FATAL. DYING.\n");
@@ -3952,6 +3953,7 @@ static bool lua_init_scripts(void)
 
 	LIST_FOREACH(str, &params.lua_init_scripts, next)
 	{
+		if (bQuit) return false;
 		if (params.debug)
 		{
 			if (str->str[0]=='@')

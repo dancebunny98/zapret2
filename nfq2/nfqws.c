@@ -458,8 +458,14 @@ static int nfq_main(void)
 	fd = nfq_fd(h);
 	do
 	{
+		if (bQuit) goto quit;
 		while ((rd = recv(fd, buf, RECONSTRUCT_MAX_SIZE, 0)) >= 0)
 		{
+			if (!rd)
+			{
+				DLOG_ERR("recv from nfq returned 0 !\n");
+				goto err;
+			}
 			ReloadCheck();
 			lua_do_gc();
 #ifdef HAS_FILTER_SSID
@@ -467,28 +473,16 @@ static int nfq_main(void)
 				if (!wlan_info_get_rate_limited())
 					DLOG_ERR("cannot get wlan info\n");
 #endif
-			if (rd)
-			{
-				int r = nfq_handle_packet(h, (char *)buf, (int)rd);
-				if (r) DLOG_ERR("nfq_handle_packet error %d\n", r);
-			}
-			else
-			{
-				DLOG_ERR("recv from nfq returned 0 !\n");
-				goto err;
-			}
+			int r = nfq_handle_packet(h, (char *)buf, (int)rd);
+			if (r) DLOG_ERR("nfq_handle_packet error %d\n", r);
 			if (bQuit) goto quit;
 		}
 		if (errno==EINTR)
-		{
-			if (bQuit) goto quit;
 			continue;
-		}
 		e = errno;
 		DLOG_ERR("recv: recv=%zd errno %d\n", rd, e);
 		errno = e;
 		DLOG_PERROR("recv");
-		if (bQuit) goto quit;
 		// do not fail on ENOBUFS
 	} while (e == ENOBUFS);
 
@@ -2117,10 +2111,10 @@ int main(int argc, char **argv)
 
 	srandom(time(NULL));
 	aes_init_keygen_tables(); // required for aes
-	mask_from_bitcount6_prepare();
 	set_env_exedir(argv[0]);
 	set_console_io_buffering();
 #ifdef __CYGWIN__
+	mask_from_bitcount6_prepare();
 	memset(hash_wf,0,sizeof(hash_wf));
 	prepare_low_appdata();
 #endif
