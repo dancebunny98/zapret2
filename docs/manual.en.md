@@ -5206,7 +5206,7 @@ Outputs to stdout: `-m connbytes --connbytes-dir=original --connbytes-mode=packe
 ```
 ipt_port_ipset()
 # $1 - ipset name
-# $2 - comma separated port or port range list. ranges are por1-port2
+# $2 - comma separated port or port range list. ranges are port1-port2
 ```
 
 Creates "bitmap:port" ipset filled with the supplied port list. If the set already exists it's elements are replaced.
