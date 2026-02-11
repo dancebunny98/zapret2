@@ -686,8 +686,8 @@ static int luacall_aes_gcm(lua_State *L)
 		luaL_error(L, "aes_gcm: wrong key length %u. should be 16,24,32.", (unsigned)key_len);
 	size_t iv_len;
 	const uint8_t *iv = (uint8_t*)lua_reqlstring(L,3,&iv_len);
-	if (iv_len!=12)
-		luaL_error(L, "aes_gcm: wrong iv length %u. should be 12.", (unsigned)iv_len);
+	if (!iv_len)
+		luaL_error(L, "aes_gcm: zero iv length");
 	size_t input_len;
 	const uint8_t *input = (uint8_t*)lua_reqlstring(L,4,&input_len);
 	size_t add_len=0;
