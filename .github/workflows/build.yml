@@ -113,7 +113,7 @@ jobs:
             wget -qO- https://www.lua.org/ftp/lua-${LUA_RELEASE}.tar.gz | tar -xz
             (
               cd lua-${LUA_RELEASE}
-              make CC=$CC CFLAGS="-Os -flto=auto $CFLAGS" linux -j$(nproc)
+              make CC=$CC CFLAGS="-Os -flto=auto -ffunction-sections -fdata-sections -fvisibility=hidden $CFLAGS" linux -j$(nproc)
               make install INSTALL_TOP=$DEPS_DIR INSTALL_BIN=$DEPS_DIR/bin INSTALL_INC=$DEPS_DIR/include/lua${LUA_VER} INSTALL_LIB=$DEPS_DIR/lib
             )
             LJIT=0
@@ -131,7 +131,7 @@ jobs:
             esac
             (
               cd luajit2-*
-              make BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI HOST_CC="$HOSTCC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP CFLAGS="-Os -s -flto=auto $CFLAGS" -j$(nproc)
+              make BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI HOST_CC="$HOSTCC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP CFLAGS="-Os -s -flto=auto -ffunction-sections -fdata-sections -fvisibility=hidden $CFLAGS" -j$(nproc)
               make install PREFIX= DESTDIR=$DEPS_DIR
             )
             LJIT=1
