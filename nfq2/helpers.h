@@ -34,7 +34,7 @@ const char *strncasestr(const char *s,const char *find, size_t slen);
 bool is_identifier(const char *p);
 
 ssize_t read_intr(int fd, void *buf, size_t count);
-size_t fread_safe(void *ptr, size_t size, size_t nmemb, FILE *F);
+bool fread_safe(void *ptr, size_t size, size_t nmemb, FILE *F, size_t *rd);
 char* fgets_safe(char *s, int size, FILE *stream);
 
 bool load_file(const char *filename, off_t offset, void *buffer, size_t *buffer_size);

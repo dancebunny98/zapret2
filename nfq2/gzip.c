@@ -15,6 +15,7 @@ int z_readfile(FILE *F, char **buf, size_t *size, size_t extra_alloc)
 	unsigned char in[ZCHUNK];
 	size_t bufsize;
 	void *newbuf;
+	size_t rd;
 
 	memset(&zs, 0, sizeof(zs));
 
@@ -26,18 +27,18 @@ int z_readfile(FILE *F, char **buf, size_t *size, size_t extra_alloc)
 
 	do
 	{
-		zs.avail_in = fread_safe(in, 1, sizeof(in), F);
-		if (ferror(F))
+		if (!fread_safe(in, 1, sizeof(in), F, &rd))
 		{
 			r = Z_ERRNO;
 			goto zerr;
 		}
-		if (!zs.avail_in)
+		if (!rd)
 		{
 			// file is not full
 			r = Z_DATA_ERROR;
 			goto zerr;
 		}
+		zs.avail_in = rd;
 		zs.next_in = in;
 		do
 		{
@@ -79,7 +80,7 @@ zerr:
 bool is_gzip(FILE* F)
 {
 	unsigned char magic[2];
-	bool b = !fseek(F, 0, SEEK_SET) && fread_safe(magic, 1, 2, F) == 2 && magic[0] == 0x1F && magic[1] == 0x8B;
+	bool b = !fseek(F, 0, SEEK_SET) && fread(magic, 1, 2, F) == 2 && magic[0] == 0x1F && magic[1] == 0x8B;
 	fseek(F, 0, SEEK_SET);
 	return b;
 }

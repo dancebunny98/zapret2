@@ -147,7 +147,7 @@ jobs:
           for i in libmnl libnfnetlink libnetfilter_queue ; do
             (
               cd $i-*
-              CFLAGS="-Os -flto=auto $CFLAGS" \
+              CFLAGS="-Os -flto=auto -ffunction-sections -fdata-sections -fvisibility=hidden $CFLAGS" \
               ./configure --prefix= --host=$TARGET --enable-static --disable-shared --disable-dependency-tracking
               make install -j$(nproc) DESTDIR=$DEPS_DIR
             )

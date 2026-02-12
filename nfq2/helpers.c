@@ -120,8 +120,7 @@ bool load_file(const char *filename, off_t offset, void *buffer, size_t *buffer_
 		}
 	}
 
-	*buffer_size = fread_safe(buffer, 1, *buffer_size, F);
-	if (ferror(F))
+	if (!fread_safe(buffer, 1, *buffer_size, F, buffer_size))
 	{
 		fclose(F);
 		return false;
@@ -512,21 +511,31 @@ ssize_t read_intr(int fd, void *buf, size_t count)
 	return rd;
 }
 
-size_t fread_safe(void *ptr, size_t size, size_t nmemb, FILE *F)
+bool fread_safe(void *ptr, size_t size, size_t nmemb, FILE *F, size_t *rd)
 {
-	size_t result, total_read = 0;
+	size_t result, to_read, total_read = 0;
 	while (total_read < nmemb)
 	{
-		total_read += (result = fread((uint8_t*)ptr + (total_read * size), size, nmemb - total_read, F));
-		if (result < (nmemb - total_read))
+		to_read = nmemb - total_read;
+		errno = 0;
+		total_read += (result = fread((uint8_t*)ptr + (total_read * size), size, to_read, F));
+		if (result < to_read)
 		{
-			if (errno == EINTR)
-				clearerr(F);
-			else
-				break;
+			if (ferror(F))
+			{
+				if (errno == EINTR)
+				{
+					clearerr(F);
+					continue;
+				}
+				*rd = total_read;
+				return false;
+			}
+			break;
 		}
 	}
-	return total_read;
+	*rd = total_read;
+	return true;
 }
 char* fgets_safe(char *s, int size, FILE *stream)
 {
@@ -534,6 +543,7 @@ char* fgets_safe(char *s, int size, FILE *stream)
 
 	while (true)
 	{
+		errno = 0;
 		if ((result = fgets(s, size, stream))) return result;
 		if (ferror(stream))
 		{
