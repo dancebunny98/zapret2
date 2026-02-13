@@ -493,7 +493,7 @@ jobs:
         uses: crazy-max/ghaction-upx@v3
         with:
           install-only: true
-          version: v4.2.4
+          version: v5.1.0
 
       - name: Prepare binaries
         shell: bash
@@ -508,7 +508,7 @@ jobs:
               case $f in
                 *.tar.xz )
                   tar -C $dir -xvf $f && rm $f
-                  if [[ $dir =~ linux ]] && [[ $dir != *-linux-mips64 ]] && [[ $dir != *-linux-lexra ]] && [[ $dir != *-linux-risc ]]; then
+                  if [[ $dir =~ linux ]] && [[ $dir != *-linux-mips64 ]] && [[ $dir != *-linux-lexra ]]; then
                     run_upx $dir/*
                   fi
                   ;;
