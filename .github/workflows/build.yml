@@ -552,8 +552,8 @@ jobs:
         run: |
           rm -rf ${{ env.repo_dir }}/.git*
           find ${{ env.repo_dir }}/binaries -type f -exec sha256sum {} \; >sha256sum.txt
-          tar --owner=0 --group=0 -czf ${{ env.repo_dir }}.tar.gz ${{ env.repo_dir }}
-          zip -qr ${{ env.repo_dir }}.zip ${{ env.repo_dir }}
+          tar --owner=0 --group=0 -c ${{ env.repo_dir }} | pigz -11 >${{ env.repo_dir }}.tar.gz
+          zip -9qr ${{ env.repo_dir }}.zip ${{ env.repo_dir }}
           (
             cd ${{ env.repo_dir }}
             rm -rf binaries/{android*,freebsd*,win*} \
@@ -561,7 +561,7 @@ jobs:
                    nfq2 ip2net mdig docs Makefile
             pigz -11 lua/*.lua
           )
-          tar --owner=0 --group=0 -czf ${{ env.repo_dir }}-openwrt-embedded.tar.gz ${{ env.repo_dir }}
+          tar --owner=0 --group=0 -c ${{ env.repo_dir }} | pigz -11 >${{ env.repo_dir }}-openwrt-embedded.tar.gz
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
