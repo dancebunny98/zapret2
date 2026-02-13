@@ -86,7 +86,7 @@ jobs:
           LUAJIT_VER: 2.1
           LUAJIT_RELEASE: 2.1-20250826
           LUAJIT_LUAVER: 5.1
-          MINSIZE: -flto=auto -ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
+          MINSIZE: -flto=auto -ffunction-sections -fdata-sections
           LDMINSIZE: -Wl,--gc-sections -flto=auto
         run: |
           DEPS_DIR=$GITHUB_WORKSPACE/deps
@@ -218,7 +218,7 @@ jobs:
           LUAJIT_VER: 2.1
           LUAJIT_RELEASE: 2.1-20250826
           LUAJIT_LUAVER: 5.1
-          MINSIZE: -Oz -flto=auto -ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
+          MINSIZE: -Oz -flto=auto -ffunction-sections -fdata-sections
           LDMINSIZE: -Wl,--gc-sections -flto=auto
         run: |
           DEPS_DIR=$GITHUB_WORKSPACE/deps
@@ -315,7 +315,7 @@ jobs:
           TARGET: ${{ matrix.target }}
           ARCH: ${{ matrix.arch }}
           CC: ${{ matrix.target }}-freebsd11-clang
-          MINSIZE: -Oz -flto=auto -ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables
+          MINSIZE: -Oz -flto=auto -ffunction-sections -fdata-sections
           LDMINSIZE: -Wl,--gc-sections -flto=auto
         run: |
 
@@ -427,7 +427,7 @@ jobs:
       - name: Build luajit
         env:
           LUAJIT_RELEASE: 2.1-20250826
-          MINSIZE: -Os -flto=auto -ffunction-sections -fdata-sections -fno-unwind-tables
+          MINSIZE: -Os -flto=auto -ffunction-sections -fdata-sections
           LDMINSIZE: -Wl,--gc-sections -flto=auto
         shell: C:\cygwin\bin\bash.exe -eo pipefail '{0}'
         run: >-
