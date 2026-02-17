@@ -922,11 +922,29 @@ BOOL SetMandatoryLabelObject(HANDLE h, SE_OBJECT_TYPE ObjType, DWORD dwMandatory
 
 bool ensure_file_access(const char *filename)
 {
-	return SetMandatoryLabelFile(filename, SECURITY_MANDATORY_LOW_RID, 0);
+	bool b=false;
+	size_t l = cygwin_conv_path(CCP_POSIX_TO_WIN_W | CCP_ABSOLUTE, filename, NULL, 0);
+	WCHAR *wfilename = (WCHAR*)malloc(l);
+	if (wfilename)
+	{
+		if (!cygwin_conv_path(CCP_POSIX_TO_WIN_W | CCP_ABSOLUTE, filename, wfilename, l))
+			b = SetMandatoryLabelFileW(wfilename, SECURITY_MANDATORY_LOW_RID, 0);
+		free(wfilename);
+	}
+	return b;
 }
 bool ensure_dir_access(const char *dir)
 {
-	return SetMandatoryLabelFile(dir, SECURITY_MANDATORY_LOW_RID, OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
+	bool b=false;
+	size_t l = cygwin_conv_path(CCP_POSIX_TO_WIN_W | CCP_ABSOLUTE, dir, NULL, 0);
+	WCHAR *wdir = (WCHAR*)malloc(l);
+	if (wdir)
+	{
+		if (!cygwin_conv_path(CCP_POSIX_TO_WIN_W | CCP_ABSOLUTE, dir, wdir, l))
+			b=SetMandatoryLabelFileW(wdir, SECURITY_MANDATORY_LOW_RID, OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
+		free(wdir);
+	}
+	return b;
 }
 
 bool prepare_low_appdata()
@@ -2434,20 +2452,11 @@ bool make_writeable_dir()
 	if (mkdir(wrdir,0755) && errno!=EEXIST)
 		return false;
 
-	bool b = false;
+	bool b;
 #ifdef __CYGWIN__
-	size_t l = cygwin_conv_path(CCP_POSIX_TO_WIN_W | CCP_ABSOLUTE, wrdir, NULL, 0);
-	WCHAR *wwrdir = (WCHAR*)malloc(l);
-	if (wwrdir)
-	{
-		if (!cygwin_conv_path(CCP_POSIX_TO_WIN_W | CCP_ABSOLUTE, wrdir, wwrdir, l))
-			b = SetMandatoryLabelFileW(wwrdir, SECURITY_MANDATORY_LOW_RID, OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
-		free(wwrdir);
-	}
+	b = ensure_dir_access(wrdir);
 #else
-	if (ensure_dir_access(wrdir))
-		b = true;
-	else
+	if (!(b=ensure_dir_access(wrdir)))
 	{
 		// could not chown. may be still accessible ?
 		char testfile[PATH_MAX];
