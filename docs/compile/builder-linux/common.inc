@@ -4,17 +4,17 @@ EXEDIR="$(cd "$EXEDIR"; pwd)"
 TOOLCHAINS="$EXEDIR/toolchain"
 DEPS="$EXEDIR/deps"
 STAGE="$EXEDIR/staging"
-OPTIMIZE=-Oz
-MINSIZE="-flto=auto -ffunction-sections -fdata-sections"
-LDMINSIZE="-Wl,--gc-sections -flto=auto"
-CFLAGS=""
-LDFLAGS="-lgcc_eh"
-HOSTCC=cc
-LUA_VER="5.5"
-LUA_RELEASE="5.5.0"
-LUAJIT_VER="2.1"
-LUAJIT_RELEASE="2.1-20250826"
-LUAJIT_LUAVER="5.1"
+OPTIMIZE=${OPTIMIZE:--Oz}
+MINSIZE="${MINSIZE:--flto=auto -ffunction-sections -fdata-sections}"
+LDMINSIZE="${LDMINSIZE:--Wl,--gc-sections -flto=auto}"
+#CFLAGS=""
+LDFLAGS="-lgcc_eh $LDFLAGS"
+HOSTCC=${HOSTCC:-cc}
+LUA_VER=${LUA_VER:-5.5}
+LUA_RELEASE=${LUA_RELEASE:-5.5.0}
+LUAJIT_VER=${LUAJIT_VER:-2.1}
+LUAJIT_RELEASE=${LUAJIT_RELEASE:-2.1-20250826}
+LUAJIT_LUA_VER=${LUAJIT_LUA_VER:-5.1}
 nproc=$(nproc)
 
 TARGETS="\

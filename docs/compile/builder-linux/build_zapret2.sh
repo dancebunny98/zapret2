@@ -52,11 +52,11 @@ for t in $TGT; do
 	target_has_luajit $t && {
 		LUA_JIT=1
 		LCFLAGS="-I${STAGING_DIR}/include/luajit-${LUAJIT_VER}"
-		LLIB="-L${STAGING_DIR}/lib -lluajit-${LUAJIT_LUAVER}"
+		LLIB="-L${STAGING_DIR}/lib -lluajit-${LUAJIT_LUA_VER}"
 	}
 
 	make clean
-	LUA_JIT=$LUA_JIT LUA_VER=$LUA_VER LUAJIT_LUA_VER=$LUAJIT_LUAVER \
+	LUA_JIT=$LUA_JIT LUA_VER=$LUA_VER LUAJIT_LUA_VER=$LUAJIT_LUA_VER \
 	OPTIMIZE=$OPTIMIZE \
 	MINSIZE=$MINSIZE \
 	CFLAGS="-static-libgcc -static -I$STAGING_DIR/include $CFLAGS" \
