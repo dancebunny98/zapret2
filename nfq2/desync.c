@@ -1588,7 +1588,7 @@ static uint8_t dpi_desync_tcp_packet_play(
 					else
 					{
 						DLOG_ERR("rawpacket_queue failed !\n");
-						goto pass_reasm_cancel;
+						goto rediscover;
 					}
 					if (ReasmIsFull(&ps.ctrack->reasm_client))
 					{
@@ -1602,6 +1602,7 @@ static uint8_t dpi_desync_tcp_packet_play(
 		}
 	}
 
+// UNSOLVED: if reasm is cancelled all packets except the last are passed as is without lua desync
 rediscover:
 	if (!dp_rediscovery(&ps))
 		goto pass_reasm_cancel;
@@ -1781,7 +1782,7 @@ static uint8_t dpi_desync_udp_packet_play(
 						else
 						{
 							DLOG("QUIC reasm is too long. cancelling.\n");
-							goto pass_reasm_cancel;
+							goto rediscover_cancel;
 						}
 					}
 					size_t hello_offset, hello_len, defrag_len = sizeof(defrag);
@@ -1805,7 +1806,7 @@ static uint8_t dpi_desync_udp_packet_play(
 								{
 									// preallocate max buffer to avoid reallocs that cause memory copy
 									if (!reasm_client_start(ps.ctrack, IPPROTO_UDP, UDP_MAX_REASM, UDP_MAX_REASM, clean, clean_len))
-										goto pass_reasm_cancel;
+										goto rediscover_cancel;
 								}
 								if (!ReasmIsEmpty(&ps.ctrack->reasm_client))
 								{
@@ -1816,7 +1817,7 @@ static uint8_t dpi_desync_udp_packet_play(
 									else
 									{
 										DLOG_ERR("rawpacket_queue failed !\n");
-										goto pass_reasm_cancel;
+										goto rediscover_cancel;
 									}
 									if (bReqFull)
 									{
@@ -1847,7 +1848,7 @@ static uint8_t dpi_desync_udp_packet_play(
 								{
 									// preallocate max buffer to avoid reallocs that cause memory copy
 									if (!reasm_client_start(ps.ctrack, IPPROTO_UDP, UDP_MAX_REASM, UDP_MAX_REASM, clean, clean_len))
-										goto pass_reasm_cancel;
+										goto rediscover_cancel;
 								}
 								if (rawpacket_queue(&ps.ctrack->delayed, &ps.dst, fwmark, desync_fwmark, ifin, ifout, dis->data_pkt, dis->len_pkt, dis->len_payload, &ps.ctrack->pos))
 								{
@@ -1856,7 +1857,7 @@ static uint8_t dpi_desync_udp_packet_play(
 								else
 								{
 									DLOG_ERR("rawpacket_queue failed !\n");
-									goto pass_reasm_cancel;
+									goto rediscover_cancel;
 								}
 								return ct_new_postnat_fix(ps.ctrack, dis, mod_pkt, len_mod_pkt);
 							}
@@ -1881,18 +1882,16 @@ static uint8_t dpi_desync_udp_packet_play(
 			feed_dns_response(dis->data_payload, dis->len_payload);
 	} // len_payload
 
+// UNSOLVED: if reasm is cancelled all packets except the last are passed as is without lua desync
+rediscover_cancel:
 	reasm_client_cancel(ps.ctrack);
 
 	if (!dp_rediscovery(&ps))
 		goto pass;
 
 	ps.verdict = desync(ps.dp, fwmark, ifin, ifout, ps.bReverseFixed, ps.ctrack_replay, tpos, ps.l7payload, ps.l7proto, dis, ps.sdip4, ps.sdip6, ps.sdport, mod_pkt, len_mod_pkt, replay_piece, replay_piece_count, reasm_offset, NULL, 0, data_decrypt, len_decrypt);
-
 pass:
 	return (!ps.bReverse && (ps.verdict & VERDICT_MASK) == VERDICT_DROP) ? ct_new_postnat_fix(ps.ctrack, dis, mod_pkt, len_mod_pkt) : ps.verdict;
-pass_reasm_cancel:
-	reasm_client_cancel(ps.ctrack);
-	goto pass;
 }
 
 // conntrack is supported only for RELATED icmp
