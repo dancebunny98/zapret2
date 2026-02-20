@@ -3554,10 +3554,15 @@ Aggregates verdicts v1 and v2. VERDICT_MODIFY overrides VERDICT_PASS, while VERD
 
 ```
 function plan_instance_execute(desync, verdict, instance)
+function plan_instance_execute_preapplied(desync, verdict, instance)
 ```
 
 Executes an [execution plan](#execution_plan) `instance`, taking into account the [instance cutoff](#instance_cutoff) and standard [payload](#in-profile-filters) and [range](#in-profile-filters) filters.
 Returns the aggregation of the current verdict and the `instance` verdict.
+
+The "preapplied" version does not apply execution plan, allowing the calling code to do so.
+Sometimes, to decide whether to call an instance, you need a desync table configured for the called instance.
+"preapplied" version allows to avoid double copying.
 
 ### plan_instance_pop
 
@@ -4473,7 +4478,7 @@ Returns `true` if the dissect is tcp and has tcp timestamp option.
 function cond_lua(desync)
 ```
 
-Executes a Lua code from the "code" argument. The code returns condition value. Direct addressing of the desync table is possible within the code.
+Executes a Lua code from the "cond_code" argument. The code returns condition value. Direct addressing of the desync table is possible within the code.
 
 
 # Auxiliary programs

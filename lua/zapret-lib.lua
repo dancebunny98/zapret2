@@ -192,8 +192,7 @@ function verdict_aggregate(v1, v2)
 	end
 	return bitor(v,vn)
 end
-function plan_instance_execute(desync, verdict, instance)
-	apply_execution_plan(desync, instance)
+function plan_instance_execute_preapplied(desync, verdict, instance)
 	if cutoff_shim_check(desync) then
 		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because of voluntary cutoff")
 	elseif not payload_match_filter(desync.l7payload, instance.payload_filter) then
@@ -205,6 +204,10 @@ function plan_instance_execute(desync, verdict, instance)
 		verdict = verdict_aggregate(verdict,_G[instance.func](nil, desync))
 	end
 	return verdict
+end
+function plan_instance_execute(desync, verdict, instance)
+	apply_execution_plan(desync, instance)
+	return plan_instance_execute_preapplied(desync,verdict,instance)
 end
 function plan_instance_pop(desync)
 	return (desync.plan and #desync.plan>0) and table.remove(desync.plan, 1) or nil

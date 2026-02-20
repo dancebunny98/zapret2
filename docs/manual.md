@@ -3733,10 +3733,15 @@ function verdict_aggregate(v1, v2)
 
 ```
 function plan_instance_execute(desync, verdict, instance)
+function plan_instance_execute_preapplied(desync, verdict, instance)
 ```
 
 Выполняет элемент [execution plan](#execution_plan) `instance` с учетом [instance cutoff](#instance_cutoff) и стандартных фильтров [payload](#внутрипрофильные-фильтры) и [range](#внутрипрофильные-фильтры).
 Возвращает агрегацию verdict и вердикта `instance`.
+
+Вариант "preapplied" не выполняет apply_execution_plan, позволяя это сделат вызывающему коду.
+Иногда для принятия решения вызывать ли instance требуется таблица desync, настроенная на вызываемый инстанс.
+Чтобы не делать apply дважды (там копирование desync.arg) и существует этот вариант.
 
 ### plan_instance_pop
 
@@ -4652,7 +4657,7 @@ function cond_tcp_ts(desync)
 function cond_lua(desync)
 ```
 
-Выполняет Lua код из аргумента "code". Код возвращает значение условия через return. Возможна прямая адресация таблицы desync.
+Выполняет Lua код из аргумента "cond_code". Код возвращает значение условия через return. Возможна прямая адресация таблицы desync.
 
 # Вспомогательные программы
 
