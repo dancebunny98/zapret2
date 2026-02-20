@@ -249,7 +249,7 @@ v0.9.4
 * nfqws2: fixed wrong scale factor application to winsize
 * nfqws2: very old kernels compat
 
-v0.9.5
+v0.9.4.2
 
 * builder_linux: simple scripts to build static linux bins for any supported architecture
 * zapret-auto:  incompatible change.  cond_code  "code" parameter => "cond_code". to avoid collision with luaexec
