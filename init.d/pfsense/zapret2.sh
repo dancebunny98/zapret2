@@ -4,13 +4,41 @@
 
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 
-ZDIR=/usr/local/etc/zapret2/lua
-DVTWS=/usr/local/sbin/dvtws2
-LOGFILE=/var/log/zapret2.log
-DIVERT_PORT=990
-IPSET_DIR=/usr/local/etc/zapret2/ipset
-RULE_TCP=100
-RULE_UDP=101
+PFSENSE_CONFIG=${PFSENSE_CONFIG:-/usr/local/etc/zapret2/pfsense.conf}
+[ -f "$PFSENSE_CONFIG" ] && . "$PFSENSE_CONFIG"
+
+ZDIR=${ZDIR:-/usr/local/etc/zapret2/lua}
+DVTWS=${DVTWS:-/usr/local/sbin/dvtws2}
+LOGFILE=${LOGFILE:-/var/log/zapret2.log}
+DIVERT_PORT=${DIVERT_PORT:-990}
+IPSET_DIR=${IPSET_DIR:-/usr/local/etc/zapret2/ipset}
+RULE_BASE=${RULE_BASE:-100}
+PORTS_TCP=${PORTS_TCP:-80,443}
+PORTS_UDP=${PORTS_UDP:-443}
+IFACE_WAN=${IFACE_WAN:-}
+# Space-separated WAN interface list. Defaults are prefilled for this setup.
+# Example: "igc3 igc4 opt4"
+IFACE_WAN_LIST=${IFACE_WAN_LIST:-igc3 igc4 opt4}
+# minimal : outbound + inbound TCP SYN+ACK/FIN/RST only
+# combo   : minimal TCP inbound + full UDP inbound
+# full    : outbound + full inbound TCP/UDP flows (high CPU load)
+IPFW_INTERCEPT_MODE=${IPFW_INTERCEPT_MODE:-combo}
+
+RULE_TCP_OUT=$RULE_BASE
+RULE_UDP_OUT=$((RULE_BASE + 1))
+RULE_TCP_IN_SYNACK=$((RULE_BASE + 2))
+RULE_TCP_IN_FIN=$((RULE_BASE + 3))
+RULE_TCP_IN_RST=$((RULE_BASE + 4))
+RULE_TCP_IN_ALL=$((RULE_BASE + 5))
+RULE_UDP_IN_ALL=$((RULE_BASE + 6))
+LISTS_UPDATER="$IPSET_DIR/update_all_antifilter.sh"
+LISTS_LOGFILE=/var/log/zapret2-lists.log
+AUTO_UPDATE_LISTS=${AUTO_UPDATE_LISTS:-1}
+AUTO_UPDATE_LISTS_STRICT=${AUTO_UPDATE_LISTS_STRICT:-0}
+VPN_OPT4_AUTOBUILD=${VPN_OPT4_AUTOBUILD:-1}
+VPN_OPT4_LIST="$IPSET_DIR/vpn-opt4.list"
+VPN_OPT4_ALIAS_OUT=/usr/local/www/vpn-opt4-alias.txt
+VPN_OPT4_HOSTS_OUT="$IPSET_DIR/vpn-opt4-hosts.txt"
 
 HOSTLIST_MAIN="$IPSET_DIR/zapret-hosts.txt"
 HOSTLIST_USER="$IPSET_DIR/zapret-hosts-user.txt"
@@ -48,8 +76,22 @@ ensure_prereq()
 
 cleanup_rules()
 {
-	ipfw delete $RULE_TCP 2>/dev/null
-	ipfw delete $RULE_UDP 2>/dev/null
+	local ifaces="$IFACE_WAN_LIST"
+	local base="$RULE_BASE"
+	local idx=0
+	local iface=
+	local r
+
+	[ -n "$IFACE_WAN" ] && ifaces="$IFACE_WAN"
+	[ -n "$ifaces" ] || ifaces="__any__"
+
+	for iface in $ifaces; do
+		for r in "$base" "$((base + 1))" "$((base + 2))" "$((base + 3))" "$((base + 4))" "$((base + 5))" "$((base + 6))"; do
+			ipfw delete "$r" 2>/dev/null
+		done
+		idx=$((idx + 1))
+		base=$((RULE_BASE + idx * 10))
+	done
 }
 
 stop_daemon()
@@ -118,6 +160,106 @@ collect_filter_args()
 	done
 }
 
+_add_ipfw_rules_for_iface()
+{
+	# $1 - interface name, or empty for any interface
+	local iface="$1"
+	local out_clause="out not diverted not sockarg"
+	local in_clause="in not diverted"
+
+	if [ -n "$iface" ]; then
+		out_clause="$out_clause xmit $iface"
+		in_clause="$in_clause recv $iface"
+	fi
+
+	local b="$2"
+	local r_tcp_out=$b
+	local r_udp_out=$((b + 1))
+	local r_tcp_in_synack=$((b + 2))
+	local r_tcp_in_fin=$((b + 3))
+	local r_tcp_in_rst=$((b + 4))
+	local r_tcp_in_all=$((b + 5))
+	local r_udp_in_all=$((b + 6))
+
+	# outbound interception
+	ipfw add $r_tcp_out divert $DIVERT_PORT tcp from any to any $PORTS_TCP $out_clause
+	ipfw add $r_udp_out divert $DIVERT_PORT udp from any to any $PORTS_UDP $out_clause
+
+	case "$IPFW_INTERCEPT_MODE" in
+		minimal)
+			# lightweight inbound interception for conntrack/autottl assistance
+			ipfw add $r_tcp_in_synack divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags syn,ack $in_clause
+			ipfw add $r_tcp_in_fin divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags fin $in_clause
+			ipfw add $r_tcp_in_rst divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags rst $in_clause
+			;;
+		combo)
+			# balanced mode: minimal tcp inbound + full udp inbound (quic replies)
+			ipfw add $r_tcp_in_synack divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags syn,ack $in_clause
+			ipfw add $r_tcp_in_fin divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags fin $in_clause
+			ipfw add $r_tcp_in_rst divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags rst $in_clause
+			ipfw add $r_udp_in_all divert $DIVERT_PORT udp from any $PORTS_UDP to any $in_clause
+			;;
+		full)
+			# full inbound flow interception (very CPU intensive)
+			ipfw add $r_tcp_in_all divert $DIVERT_PORT tcp from any $PORTS_TCP to any $in_clause
+			ipfw add $r_udp_in_all divert $DIVERT_PORT udp from any $PORTS_UDP to any $in_clause
+			;;
+		*)
+			log "invalid IPFW_INTERCEPT_MODE=$IPFW_INTERCEPT_MODE, fallback to minimal"
+			ipfw add $r_tcp_in_synack divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags syn,ack $in_clause
+			ipfw add $r_tcp_in_fin divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags fin $in_clause
+			ipfw add $r_tcp_in_rst divert $DIVERT_PORT tcp from any $PORTS_TCP to any tcpflags rst $in_clause
+			;;
+	esac
+}
+
+add_ipfw_rules()
+{
+	local ifaces="$IFACE_WAN_LIST"
+	local base="$RULE_BASE"
+	local idx=0
+	local iface=
+
+	# backward compatibility: explicit IFACE_WAN has priority if provided
+	[ -n "$IFACE_WAN" ] && ifaces="$IFACE_WAN"
+
+	# no interface restriction -> single ruleset for any iface
+	if [ -z "$ifaces" ]; then
+		_add_ipfw_rules_for_iface "" "$base"
+		return 0
+	fi
+
+	for iface in $ifaces; do
+		_add_ipfw_rules_for_iface "$iface" "$base"
+		idx=$((idx + 1))
+		base=$((RULE_BASE + idx * 10))
+	done
+}
+
+refresh_lists()
+{
+	[ "$AUTO_UPDATE_LISTS" = "1" ] || {
+		log "auto list update disabled"
+		return 0
+	}
+	[ -f "$LISTS_UPDATER" ] || {
+		log "list updater script not found: $LISTS_UPDATER"
+		return 0
+	}
+
+	log "running list updater: $LISTS_UPDATER"
+	STRICT_MODE="$AUTO_UPDATE_LISTS_STRICT" \
+	VPN_OPT4_AUTOBUILD="$VPN_OPT4_AUTOBUILD" \
+	VPN_OPT4_LIST="$VPN_OPT4_LIST" \
+	VPN_OPT4_ALIAS_OUT="$VPN_OPT4_ALIAS_OUT" \
+	VPN_OPT4_HOSTS_OUT="$VPN_OPT4_HOSTS_OUT" \
+	/bin/sh "$LISTS_UPDATER" "$LISTS_LOGFILE" >>"$LOGFILE" 2>&1 || {
+		log "list updater finished with errors"
+		[ "$AUTO_UPDATE_LISTS_STRICT" = "1" ] && return 1
+	}
+	return 0
+}
+
 start_service()
 {
 	ensure_prereq || return 1
@@ -141,13 +283,14 @@ start_service()
 
 	cleanup_rules
 
-	# add ipfw rules
-	ipfw add $RULE_TCP divert $DIVERT_PORT tcp from any to any 80,443 out not diverted not sockarg
-	ipfw add $RULE_UDP divert $DIVERT_PORT udp from any to any 443 out not diverted not sockarg
+	# add ipfw rules (mode-driven)
+	add_ipfw_rules
 
 	# restart daemon
 	stop_daemon
 	sleep 1
+
+	refresh_lists || return 1
 
 	collect_filter_args
 	[ -n "$FILTER_ARGS" ] && log "filter lists:$FILTER_ARGS"
@@ -208,7 +351,8 @@ status_service()
 	else
 		echo "zapret2 is not running"
 	fi
-	ipfw list | grep -E "^[0 ]*($RULE_TCP|$RULE_UDP)[[:space:]]+divert" || true
+	echo "mode=$IPFW_INTERCEPT_MODE iface_wan=${IFACE_WAN:-} iface_wan_list=${IFACE_WAN_LIST:-any} divert_port=$DIVERT_PORT tcp_ports=$PORTS_TCP udp_ports=$PORTS_UDP rule_base=$RULE_BASE"
+	ipfw list | grep -E "[[:space:]]divert[[:space:]]+$DIVERT_PORT[[:space:]]" || true
 }
 
 case "$1" in
@@ -226,8 +370,11 @@ case "$1" in
 	status)
 		status_service
 		;;
+	update-lists|update_lists)
+		refresh_lists
+		;;
 	*)
-		echo "usage: $0 {start|stop|restart|status}" >&2
+		echo "usage: $0 {start|stop|restart|status|update-lists}" >&2
 		exit 2
 		;;
 esac

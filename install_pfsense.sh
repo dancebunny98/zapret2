@@ -65,6 +65,7 @@ stage_source()
 	cp "$EXEDIR/blockcheck2.sh" "$TMP_STAGE/blockcheck2.sh"
 	cp "$EXEDIR/install_pfsense.sh" "$TMP_STAGE/install_pfsense.sh"
 	cp "$EXEDIR/config.default" "$TMP_STAGE/config.default"
+	cp "$EXEDIR/pfsense.conf.example" "$TMP_STAGE/pfsense.conf.example"
 	cp "$EXEDIR/init.d/pfsense/zapret2.sh" "$TMP_STAGE/zapret2.sh"
 	cp "$EXEDIR/binaries/freebsd-x86_64/dvtws2" "$TMP_STAGE/dvtws2"
 	cp "$EXEDIR/binaries/freebsd-x86_64/ip2net" "$TMP_STAGE/ip2net"
@@ -83,7 +84,8 @@ cleanup_previous_install()
 	rm -rf "$ZAPRET_TARGET/files/fake"
 	rm -f "$ZAPRET_TARGET/blockcheck2.sh"
 	rm -f "$ZAPRET_TARGET/install_pfsense.sh"
-	rm -f "$ZAPRET_TARGET/config.default"
+rm -f "$ZAPRET_TARGET/config.default"
+	rm -f "$ZAPRET_TARGET/pfsense.conf.example"
 
 	rm -f "$SBIN_TARGET/dvtws2"
 	rm -f "$SBIN_TARGET/ip2net"
@@ -149,6 +151,8 @@ cp "$TMP_STAGE/zapret2.sh" "$RC_TARGET/zapret2.sh"
 cp "$TMP_STAGE/blockcheck2.sh" "$ZAPRET_TARGET/blockcheck2.sh"
 cp "$TMP_STAGE/install_pfsense.sh" "$ZAPRET_TARGET/install_pfsense.sh"
 cp "$TMP_STAGE/config.default" "$ZAPRET_TARGET/config.default"
+cp "$TMP_STAGE/pfsense.conf.example" "$ZAPRET_TARGET/pfsense.conf.example"
+[ -f "$ZAPRET_TARGET/pfsense.conf" ] || cp "$TMP_STAGE/pfsense.conf.example" "$ZAPRET_TARGET/pfsense.conf"
 
 fix_permissions
 

@@ -1,0 +1,32 @@
+# Optional settings for /usr/local/etc/rc.d/zapret2.sh on pfSense.
+# Copy to /usr/local/etc/zapret2/pfsense.conf and edit as needed.
+
+# IPFW interception mode:
+# minimal - outbound + inbound TCP SYN+ACK/FIN/RST only (lower CPU)
+# combo   - minimal TCP inbound + full UDP inbound (balanced)
+# full    - outbound + full inbound TCP/UDP streams (higher CPU)
+IPFW_INTERCEPT_MODE=combo
+
+# WAN interface used by ipfw xmit/recv matching.
+# Leave empty to match any interface.
+IFACE_WAN=
+# Multi-WAN list (used if IFACE_WAN is empty)
+IFACE_WAN_LIST="igc3 igc4 opt4"
+
+# Divert and target ports
+DIVERT_PORT=990
+PORTS_TCP=80,443
+PORTS_UDP=443
+
+# Base rule number (script uses RULE_BASE..RULE_BASE+6)
+RULE_BASE=100
+
+# Automatic list update on start/restart
+AUTO_UPDATE_LISTS=1
+AUTO_UPDATE_LISTS_STRICT=0
+
+# Optional VPN alias auto build
+VPN_OPT4_AUTOBUILD=1
+VPN_OPT4_LIST=/usr/local/etc/zapret2/ipset/vpn-opt4.list
+VPN_OPT4_ALIAS_OUT=/usr/local/www/vpn-opt4-alias.txt
+VPN_OPT4_HOSTS_OUT=/usr/local/etc/zapret2/ipset/vpn-opt4-hosts.txt
