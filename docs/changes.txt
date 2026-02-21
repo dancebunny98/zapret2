@@ -252,4 +252,4 @@ v0.9.4
 v0.9.4.2
 
 * builder_linux: simple scripts to build static linux bins for any supported architecture
-* zapret-auto:  incompatible change.  cond_lua "code" parameter => "cond_code". to avoid collision with luaexec
+* zapret-auto:  incompatible change.  cond_code  "code" parameter => "cond_code". to avoid collision with luaexec

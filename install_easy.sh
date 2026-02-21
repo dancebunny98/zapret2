@@ -406,6 +406,7 @@ fix_perms()
 	find "$1/binaries" '(' -name dvtws2 -o -name nfqws2 -o -name ip2net -o -name mdig ')' -exec chmod 755 {} \;
 	for f in \
 install_bin.sh \
+install_pfsense.sh \
 blockcheck2.sh \
 install_easy.sh \
 install_prereq.sh \
