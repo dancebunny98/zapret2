@@ -1,0 +1,13 @@
+# Unified list for VPN policy routing via pfSense OPT4/WireGuard.
+# Supports:
+# - domain: modrinth.com
+# - ipv4/cidr: 104.26.0.0/20
+# - ipv6/cidr: 2606:4700::/32
+
+modrinth.com
+cdn.modrinth.com
+api.modrinth.com
+
+# You can also add direct IP/CIDR:
+# 104.26.12.0/24
+# 2606:4700:20::/44

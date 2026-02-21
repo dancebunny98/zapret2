@@ -1,19 +1,144 @@
+ANTIFILTER_MIN_SIZE=16384
+
+_af_existing_file()
+{
+	# $1 - base filename without .gz
+	if [ -s "$1" ]; then
+		echo "$1"
+	elif [ -s "$1.gz" ]; then
+		echo "$1.gz"
+	fi
+}
+
+_af_extract_domains()
+{
+	# $1 - input file
+	$AWK '
+	{
+		gsub(/\r/, "", $0)
+		sub(/[ \t]*#.*/, "", $0)
+		sub(/^[ \t]+/, "", $0)
+		sub(/[ \t]+$/, "", $0)
+		if ($0 == "") next
+		d = tolower($0)
+		sub(/^\*\./, "", d)
+		sub(/^\./, "", d)
+		if (d ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(\/[0-9]+)?$/) next
+		if (index(d, ":") > 0) next
+		if (d !~ /^[a-z0-9.-]+$/) next
+		if (d !~ /\./) next
+		if (d ~ /^\./ || d ~ /\.$/) next
+		if (d ~ /(^|[.])-|-(\.|$)/) next
+		print d
+	}
+	' "$1" | sort -u
+}
+
+_af_merge_family()
+{
+	# $1 - suffix (ip|ip6|hosts)
+	# $2 - destination base path without .gz
+	local suffix="$1" target="$2" found=
+	local f base src
+	rm -f "$target" "$target.gz"
+	for f in "$IPSET_RW_DIR"/antifilter-*-"$suffix".txt "$IPSET_RW_DIR"/antifilter-*-"$suffix".txt.gz; do
+		[ -e "$f" ] || continue
+		case "$f" in
+			*.gz) base=${f%.gz} ;;
+			*) base=$f ;;
+		esac
+		src=$(_af_existing_file "$base")
+		[ -n "$src" ] || continue
+		found=1
+		zzcat "$base"
+	done | sort -u >"$TMPDIR/antifilter-merged-$suffix.txt"
+	if [ -n "$found" ] && [ -s "$TMPDIR/antifilter-merged-$suffix.txt" ]; then
+		zzcopy "$TMPDIR/antifilter-merged-$suffix.txt" "$target"
+	fi
+	rm -f "$TMPDIR/antifilter-merged-$suffix.txt"
+}
+
+merge_antifilter_lists()
+{
+	_af_merge_family ip "$ZIPLIST"
+	_af_merge_family ip6 "$ZIPLIST6"
+	_af_merge_family hosts "$ZHOSTLIST"
+}
+
+get_antifilter_source()
+{
+	# $1 - source name (ip|ipresolve|ipsmart|ipsum|allyouneed)
+	# $2 - list url
+	local src_name="$1" url="$2"
+	local src_ip4="$IPSET_RW_DIR/antifilter-$src_name-ip.txt"
+	local src_ip6="$IPSET_RW_DIR/antifilter-$src_name-ip6.txt"
+	local src_hosts="$IPSET_RW_DIR/antifilter-$src_name-hosts.txt"
+	local tmp_raw="$TMPDIR/antifilter-$src_name.lst"
+	local tmp_ip4="$TMPDIR/antifilter-$src_name-ip4.txt"
+	local tmp_ip6="$TMPDIR/antifilter-$src_name-ip6.txt"
+	local tmp_hosts="$TMPDIR/antifilter-$src_name-hosts.txt"
+
+	[ -n "$src_name" ] && [ -n "$url" ] || return 1
+
+	curl --fail --max-time 150 --connect-timeout 20 --max-filesize 41943040 -k -L -o "$tmp_raw" "$url" || {
+		echo list download failed : "$url"
+		exit 2
+	}
+
+	dlsize=$(LC_ALL=C LANG=C wc -c "$tmp_raw" | xargs | cut -f 1 -d ' ')
+	if [ "$dlsize" -lt "$ANTIFILTER_MIN_SIZE" ]; then
+		echo list file is too small : $dlsize bytes. can be bad.
+		rm -f "$tmp_raw"
+		exit 2
+	fi
+
+	get_ip_regex
+
+	if [ "$DISABLE_IPV4" != "1" ]; then
+		$GREP -Eo "$REG_IPV4" "$tmp_raw" | cut_local | ip2net4 | sort -u >"$tmp_ip4"
+		if [ -s "$tmp_ip4" ]; then
+			zzcopy "$tmp_ip4" "$src_ip4"
+		else
+			rm -f "$src_ip4" "$src_ip4.gz"
+		fi
+	fi
+
+	if [ "$DISABLE_IPV6" != "1" ]; then
+		$GREP -Eo "$REG_IPV6" "$tmp_raw" | cut_local6 | ip2net6 | sort -u >"$tmp_ip6"
+		if [ -s "$tmp_ip6" ]; then
+			zzcopy "$tmp_ip6" "$src_ip6"
+		else
+			rm -f "$src_ip6" "$src_ip6.gz"
+		fi
+	fi
+
+	_af_extract_domains "$tmp_raw" >"$tmp_hosts"
+	if [ -s "$tmp_hosts" ]; then
+		zzcopy "$tmp_hosts" "$src_hosts"
+	else
+		rm -f "$src_hosts" "$src_hosts.gz"
+	fi
+
+	merge_antifilter_lists
+	rm -f "$tmp_raw" "$tmp_ip4" "$tmp_ip6" "$tmp_hosts"
+	return 0
+}
+
 get_antifilter()
 {
- # $1 - list url
- # $2 - target file
- local ZIPLISTTMP="$TMPDIR/zapret-ip.txt"
-
- [ "$DISABLE_IPV4" != "1" ] && {
-  curl --fail --max-time 150 --connect-timeout 20 --max-filesize 41943040 -k -L "$1" | cut_local >"$ZIPLISTTMP" &&
-  {
-   dlsize=$(LC_ALL=C LANG=C wc -c "$ZIPLISTTMP" | xargs | cut -f 1 -d ' ')
-   if [ $dlsize -lt 102400 ]; then
-    echo list file is too small. can be bad.
-    exit 2
-   fi
-   ip2net4 <"$ZIPLISTTMP" | zz "$2"
-   rm -f "$ZIPLISTTMP"
-  }
- }
+	# backward compatible wrapper
+	# $1 - list url
+	# $2 - target file (optional, default: ZIPLIST)
+	local url="$1" target="$2" src_name
+	src_name=$(basename "$url")
+	src_name=${src_name%%.*}
+	src_name=$(echo "$src_name" | tr -cd 'a-zA-Z0-9_-')
+	[ -n "$src_name" ] || src_name=custom
+	get_antifilter_source "$src_name" "$url" || return 1
+	[ -n "$target" ] || target="$ZIPLIST"
+	if zzexist "$ZIPLIST"; then
+		zzcopy "$ZIPLIST" "$target"
+	else
+		rm -f "$target" "$target.gz"
+	fi
 }

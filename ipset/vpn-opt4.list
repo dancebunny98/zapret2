@@ -1,0 +1,4 @@
+# Unified VPN route list (OPT4/WireGuard).
+# Add domains/IP/CIDR one per line.
+
+modrinth.com

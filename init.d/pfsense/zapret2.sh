@@ -8,9 +8,21 @@ ZDIR=/usr/local/etc/zapret2/lua
 DVTWS=/usr/local/sbin/dvtws2
 LOGFILE=/var/log/zapret2.log
 DIVERT_PORT=990
-HOSTLIST=/usr/local/etc/zapret2/ipset/zapret-hosts-user.txt
+IPSET_DIR=/usr/local/etc/zapret2/ipset
 RULE_TCP=100
 RULE_UDP=101
+
+HOSTLIST_MAIN="$IPSET_DIR/zapret-hosts.txt"
+HOSTLIST_USER="$IPSET_DIR/zapret-hosts-user.txt"
+HOSTLIST_AUTO="$IPSET_DIR/zapret-hosts-auto.txt"
+HOSTLIST_EXCLUDE="$IPSET_DIR/zapret-hosts-user-exclude.txt"
+
+IPLIST_MAIN4="$IPSET_DIR/zapret-ip.txt"
+IPLIST_MAIN6="$IPSET_DIR/zapret-ip6.txt"
+IPLIST_USER4="$IPSET_DIR/zapret-ip-user.txt"
+IPLIST_USER6="$IPSET_DIR/zapret-ip-user6.txt"
+IPLIST_EXCLUDE4="$IPSET_DIR/zapret-ip-exclude.txt"
+IPLIST_EXCLUDE6="$IPSET_DIR/zapret-ip-exclude6.txt"
 
 log()
 {
@@ -45,6 +57,67 @@ stop_daemon()
 	pkill -f "dvtws2" 2>/dev/null
 }
 
+append_arg_for_file()
+{
+	# $1 - option name (for example --hostlist)
+	# $2 - file path without optional .gz suffix
+	local option="$1"
+	local file="$2"
+	local selected=
+
+	if [ -s "$file" ]; then
+		selected="$file"
+	elif [ -s "$file.gz" ]; then
+		selected="$file.gz"
+	fi
+
+	[ -n "$selected" ] && FILTER_ARGS="$FILTER_ARGS $option=$selected"
+}
+
+append_arg_for_plain_file()
+{
+	# $1 - option name
+	# $2 - file path (no gzip fallback)
+	local option="$1"
+	local file="$2"
+	[ -s "$file" ] && FILTER_ARGS="$FILTER_ARGS $option=$file"
+}
+
+collect_filter_args()
+{
+	FILTER_ARGS=
+	local f
+
+	append_arg_for_file --hostlist "$HOSTLIST_MAIN"
+	append_arg_for_file --hostlist "$HOSTLIST_USER"
+	# autohostlist must be plain text for runtime updates
+	append_arg_for_plain_file --hostlist-auto "$HOSTLIST_AUTO"
+	append_arg_for_file --hostlist-exclude "$HOSTLIST_EXCLUDE"
+
+	append_arg_for_file --ipset "$IPLIST_MAIN4"
+	append_arg_for_file --ipset "$IPLIST_MAIN6"
+	append_arg_for_file --ipset "$IPLIST_USER4"
+	append_arg_for_file --ipset "$IPLIST_USER6"
+	append_arg_for_file --ipset-exclude "$IPLIST_EXCLUDE4"
+	append_arg_for_file --ipset-exclude "$IPLIST_EXCLUDE6"
+
+	# all antifilter source lists collected by ipset/get_antifilter_*.sh
+	for f in "$IPSET_DIR"/antifilter-*-hosts.txt "$IPSET_DIR"/antifilter-*-hosts.txt.gz; do
+		[ -e "$f" ] || continue
+		case "$f" in
+			*.gz) FILTER_ARGS="$FILTER_ARGS --hostlist=$f" ;;
+			*) append_arg_for_file --hostlist "$f" ;;
+		esac
+	done
+	for f in "$IPSET_DIR"/antifilter-*-ip.txt "$IPSET_DIR"/antifilter-*-ip.txt.gz "$IPSET_DIR"/antifilter-*-ip6.txt "$IPSET_DIR"/antifilter-*-ip6.txt.gz; do
+		[ -e "$f" ] || continue
+		case "$f" in
+			*.gz) FILTER_ARGS="$FILTER_ARGS --ipset=$f" ;;
+			*) append_arg_for_file --ipset "$f" ;;
+		esac
+	done
+}
+
 start_service()
 {
 	ensure_prereq || return 1
@@ -76,31 +149,37 @@ start_service()
 	stop_daemon
 	sleep 1
 
-	HL_ARG=""
-	[ -f "$HOSTLIST" ] && HL_ARG="--hostlist=$HOSTLIST"
+	collect_filter_args
+	[ -n "$FILTER_ARGS" ] && log "filter lists:$FILTER_ARGS"
 
-	"$DVTWS" \
+	DVTWS_CMD="\"$DVTWS\" \
 	  --daemon \
 	  --port $DIVERT_PORT \
 	  --lua-init=@$ZDIR/zapret-lib.lua \
 	  --lua-init=@$ZDIR/zapret-antidpi.lua \
 	  \
 	  --filter-tcp=80 \
-	  $HL_ARG \
+	  --filter-l7=http \
+	  $FILTER_ARGS \
+	  --payload=http_req \
 	  --lua-desync=fake:blob=fake_default_http:tcp_md5 \
 	  --lua-desync=multisplit:pos=method+2 \
 	  --new \
 	  \
 	  --filter-tcp=443 \
-	  $HL_ARG \
+	  --filter-l7=tls \
+	  $FILTER_ARGS \
+	  --payload=tls_client_hello \
 	  --lua-desync=fake:blob=fake_default_tls:tcp_md5:tcp_seq=-10000 \
 	  --lua-desync=multidisorder:pos=1,midsld \
 	  --new \
 	  \
 	  --filter-udp=443 \
-	  $HL_ARG \
-	  --lua-desync=fake:blob=fake_default_quic:repeats=6 \
-	  >> "$LOGFILE" 2>&1
+	  --filter-l7=quic \
+	  $FILTER_ARGS \
+	  --payload=quic_initial \
+	  --lua-desync=fake:blob=fake_default_quic:repeats=6"
+	eval "$DVTWS_CMD" >> "$LOGFILE" 2>&1
 
 	PID="$(pgrep dvtws2)"
 	[ -n "$PID" ] || {

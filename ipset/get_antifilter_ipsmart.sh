@@ -7,7 +7,7 @@ IPSET_DIR="$(cd "$IPSET_DIR"; pwd)"
 
 getuser && {
  . "$IPSET_DIR/antifilter.helper"
- get_antifilter https://antifilter.network/download/ipsmart.lst "$ZIPLIST"
+ get_antifilter_source ipsmart https://antifilter.network/download/ipsmart.lst
 }
 
 "$IPSET_DIR/create_ipset.sh"
