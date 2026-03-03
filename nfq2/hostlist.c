@@ -8,8 +8,10 @@ static bool addpool(hostlist_pool **hostlist, char **s, const char *end, int *ct
 {
 	char *p=*s;
 
+	for (; p<end && (*p==' ' || *p=='\t') ; p++);
+	*s = p;
 	// comment line ?
-	if ( *p != '#' && *p != ';' && *p != '/' && *p != '\r' && *p != '\n')
+	if (p<end && *p != '#' && *p != ';' && *p != '/' && *p != '\r' && *p != '\n')
 	{
 		// advance until eol lowering all chars
 		uint32_t flags = 0;
@@ -64,18 +66,21 @@ bool AppendHostList(hostlist_pool **hostlist, const char *filename)
 		{
 			DLOG_CONDUP("zlib compression detected. uncompressed size : %zu\n", zsize);
 
-			p = zbuf;
-			e = zbuf + zsize;
-			while(p<e)
+			if (zbuf)
 			{
-				if (!addpool(hostlist,&p,e,&ct))
+				p = zbuf;
+				e = zbuf + zsize;
+				while(p<e)
 				{
-					DLOG_ERR("Not enough memory to store host list : %s\n", filename);
-					free(zbuf);
-					return false;
+					if (!addpool(hostlist,&p,e,&ct))
+					{
+						DLOG_ERR("Not enough memory to store host list : %s\n", filename);
+						free(zbuf);
+						return false;
+					}
 				}
+				free(zbuf);
 			}
-			free(zbuf);
 		}
 		else
 		{

@@ -252,4 +252,10 @@ v0.9.4
 v0.9.4.2
 
 * builder_linux: simple scripts to build static linux bins for any supported architecture
-* zapret-auto:  incompatible change.  cond_code  "code" parameter => "cond_code". to avoid collision with luaexec
+* zapret-auto:  incompatible change.  cond_lua "code" parameter => "cond_code". to avoid collision with luaexec
+
+v0.9.4.3
+
+* nfqws2: fix broken wifi ssid update
+* github: revert to upx 4.2.4 for all archs except riscv64
+* zapret-lib: apply_fooling throws error if tcp_ts,tcp_seq,tcp_ack,ip_ttl,ip6_ttl,ip_autottl,ip6_autottl are empty or invalid

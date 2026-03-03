@@ -48,7 +48,7 @@ uint32_t net32_add(uint32_t netorder_value, uint32_t cpuorder_increment)
 {
 	return htonl(ntohl(netorder_value)+cpuorder_increment);
 }
-uint32_t net16_add(uint16_t netorder_value, uint16_t cpuorder_increment)
+uint16_t net16_add(uint16_t netorder_value, uint16_t cpuorder_increment)
 {
 	return htons(ntohs(netorder_value)+cpuorder_increment);
 }
@@ -229,7 +229,7 @@ uint16_t family_from_proto(uint8_t l3proto)
 	{
 		case IPPROTO_IP: return AF_INET;
 		case IPPROTO_IPV6: return AF_INET6;
-		default: return -1;
+		default: return AF_UNSPEC;
 	}
 }
 
@@ -557,11 +557,15 @@ void proto_dissect_l3l4(const uint8_t *data, size_t len, struct dissect *dis, bo
 	dis->data_pkt = data;
 	dis->len_pkt = len;
 
+	uint16_t iplen;
+
 	if (proto_check_ipv4(data, len) && (no_payload_check || proto_check_ipv4_payload(data, len)))
 	{
 		dis->ip = (const struct ip *) data;
 		dis->proto = dis->ip->ip_p;
 		p = data;
+		iplen = ntohs(((struct ip*)data)->ip_len);
+		if (iplen<len) dis->len_pkt = len = iplen;
 		proto_skip_ipv4(&data, &len, &dis->frag, &dis->frag_off);
 		dis->len_l3 = data-p;
 	}
@@ -569,6 +573,8 @@ void proto_dissect_l3l4(const uint8_t *data, size_t len, struct dissect *dis, bo
 	{
 		dis->ip6 = (const struct ip6_hdr *) data;
 		p = data;
+		iplen = ntohs(((struct ip6_hdr*)data)->ip6_ctlun.ip6_un1.ip6_un1_plen) + sizeof(struct ip6_hdr);
+		if (iplen<len) dis->len_pkt = len = iplen;
 		proto_skip_ipv6(&data, &len, &dis->proto, &dis->frag, &dis->frag_off);
 		dis->len_l3 = data-p;
 	}
@@ -2154,8 +2160,8 @@ static uint8_t *find_ie(uint8_t *buf, size_t len, uint8_t ie)
 	{
 		if (len<(2+buf[1])) break;
 		if (buf[0]==ie) return buf;
-		buf+=buf[1]+2;
 		len-=buf[1]+2;
+		buf+=buf[1]+2;
 	}
 	return NULL;
 }
@@ -2238,6 +2244,7 @@ static bool scan_info(struct mnl_socket* nl, uint16_t wlan_family_id, struct wla
 	// wlan_info does not return ssid since kernel 5.19
 	// it's used to enumerate all wifi interfaces then call scan_info on each
 	if (!wlan_info(nl, wlan_family_id, &wc_all, false)) return false;
+	w->count=0;
 	for(int i=0;i<wc_all.count;i++)
 		if (!netlink_genl_simple_transact(nl, wlan_family_id, NLM_F_REQUEST | NLM_F_ACK | NLM_F_DUMP, NL80211_CMD_GET_SCAN, 0, scan_prepare, (void*)&wc_all.wlan[i].ifindex, scan_info_cb, w))
 			return false;

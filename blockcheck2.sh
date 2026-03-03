@@ -435,6 +435,15 @@ check_already()
 freebsd_module_loaded()
 {
 	# $1 - module name
+	# FreeBSD/pfSense may have features built into kernel with no loadable module.
+	case "$1" in
+		ipfw)
+			sysctl -qn net.inet.ip.fw.enable >/dev/null 2>&1 && return 0
+			;;
+		ipdivert)
+			sysctl -qn net.inet.ip.divert.recvspace >/dev/null 2>&1 && return 0
+			;;
+	esac
 	kldstat -qm "${1}"
 }
 freebsd_modules_loaded()

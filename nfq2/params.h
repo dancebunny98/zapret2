@@ -23,7 +23,8 @@
 
 #define RAW_SNDBUF	(64*1024)	// in bytes
 
-#define Q_MAXLEN	1024		// in packets
+#define Q_MAXLEN	4096		// in packets
+#define Q_RCVBUF	(1024*1024)	// in bytes
 
 #define HOSTLIST_AUTO_FAIL_THRESHOLD_DEFAULT	3
 #define	HOSTLIST_AUTO_FAIL_TIME_DEFAULT 	60
