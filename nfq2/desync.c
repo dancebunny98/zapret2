@@ -2003,7 +2003,7 @@ static uint8_t dpi_desync_icmp_packet(
 				// invert direction. they are answering to this packet
 				bReverse = !bReverse;
 				DLOG("found conntrack entry. inverted reverse=%u\n",bReverse);
-				if (ctrack->dp_search_complete)
+				if (ctrack->dp_search_complete && ctrack->dp)
 				{
 					// RELATED icmp processed within base connection profile
 					dp = ctrack->dp;

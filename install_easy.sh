@@ -406,6 +406,8 @@ fix_perms()
 	find "$1/binaries" '(' -name dvtws2 -o -name nfqws2 -o -name ip2net -o -name mdig ')' -exec chmod 755 {} \;
 	for f in \
 install_bin.sh \
+install_pfsense.sh \
+install_openbsd.sh \
 blockcheck2.sh \
 install_easy.sh \
 install_prereq.sh \
@@ -435,6 +437,8 @@ ipset/get_antifilter_ip.sh \
 ipset/get_antifilter_ipresolve.sh \
 ipset/get_antizapret_domains.sh \
 init.d/pfsense/zapret2.sh \
+init.d/openbsd/zapret2.sh \
+init.d/openbsd/apply_blockcheck.sh \
 init.d/runit/zapret2/run \
 init.d/runit/zapret2/finish \
 init.d/openrc/zapret2 \

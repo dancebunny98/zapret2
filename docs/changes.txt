@@ -259,3 +259,17 @@ v0.9.4.3
 * nfqws2: fix broken wifi ssid update
 * github: revert to upx 4.2.4 for all archs except riscv64
 * zapret-lib: apply_fooling throws error if tcp_ts,tcp_seq,tcp_ack,ip_ttl,ip6_ttl,ip_autottl,ip6_autottl are empty or invalid
+
+0.9.4.4
+
+* winws2, dvtws2: ASLR
+* github, linux-builder: reduce arm executable size by 20% - move to armv7+thumb
+* init.d: warn if hostlist/ipset files are inside zapret2 root
+* zapret-lib: do not call apply_arg_prefix in apply_execution_plan - call it right before instance execute
+
+0.9.4.5
+
+* github: rollback to lj_alloc in luajit for arm64 and mips64
+* github: use 16K page size for android arm64 build
+* nfqws2: join fragments in quic CRYPTO reconstruction. allow intersections.
+

@@ -260,8 +260,8 @@ static int nfq_cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_da
 	uint32_t mark;
 	struct ifreq ifr_in, ifr_out;
 
-	ph = nfq_get_msg_packet_hdr(nfa);
-	id = ph ? ntohl(ph->packet_id) : 0;
+	if (!(ph = nfq_get_msg_packet_hdr(nfa))) return 0; // should not happen
+	id = ntohl(ph->packet_id);
 
 	mark = nfq_get_nfmark(nfa);
 	ilen = nfq_get_payload(nfa, &data);
@@ -378,7 +378,11 @@ static bool nfq_init(struct nfq_handle **h, struct nfq_q_handle **qh, struct nfq
 		// dot not fail. not supported in old linuxes <3.6 
 	}
 
-	nfnl_rcvbufsiz(nfq_nfnlh(*h), Q_RCVBUF);
+	unsigned int rcvbuf = nfnl_rcvbufsiz(nfq_nfnlh(*h), Q_RCVBUF) / 2;
+	if (rcvbuf==Q_RCVBUF)
+		DLOG("set receive buffer size to %u\n", rcvbuf);
+	else
+		DLOG_CONDUP("could not set receive buffer size to %u. real size is %u\n", Q_RCVBUF, rcvbuf);
 
 	int yes = 1, fd = nfq_fd(*h);
 
@@ -412,7 +416,7 @@ static int nfq_main(void)
 	ssize_t rd;
 	FILE *Fpid = NULL;
 	uint8_t *buf=NULL, *mod=NULL;
-	struct nfq_cb_data cbdata = { .sock = -1 };
+	struct nfq_cb_data cbdata = { .sock = -1, .mod = NULL };
 
 	if (*params.pidfile && !(Fpid = fopen(params.pidfile, "w")))
 	{
@@ -517,11 +521,18 @@ static int nfq_main(void)
 		// do not fail on ENOBUFS
 	} while (e == ENOBUFS);
 
+err:
+	res=1;
+	goto ex;
+
+quit:
+	DLOG_CONDUP("quit requested\n");
 exok:
 	res=0;
 ex:
-	free(cbdata.mod);
+	if (Fpid) fclose(Fpid);
 	if (cbdata.sock>=0) close(cbdata.sock);
+	free(cbdata.mod);
 	free(buf);
 	nfq_deinit(&h, &qh);
 	lua_shutdown();
@@ -530,13 +541,6 @@ ex:
 #endif
 	rawsend_cleanup();
 	return res;
-err:
-	if (Fpid) fclose(Fpid);
-	res=1;
-	goto ex;
-quit:
-	DLOG_CONDUP("quit requested\n");
-	goto exok;
 }
 
 #elif defined(BSD)
@@ -666,6 +670,7 @@ static int dvt_main(void)
 				if (rd < 0)
 				{
 					DLOG_PERROR("recvfrom");
+					if (errno==ENOBUFS) continue;
 					goto exiterr;
 				}
 				else if (rd > 0)
@@ -1280,7 +1285,7 @@ struct func_list *parse_lua_call(char *opt, struct func_list_head *flist)
 	struct func_list *f = NULL;
 
 	if (!(name = item_name(&opt)))
-		return false;
+		return NULL;
 
 	if (!is_identifier(name) || !(f=funclist_add_tail(flist,name)))
 		goto err;
@@ -2533,7 +2538,7 @@ int main(int argc, char **argv)
 			}
 			break;
 		case IDX_HOSTLIST_AUTO_FAIL_THRESHOLD:
-			dp->hostlist_auto_fail_threshold = (uint8_t)atoi(optarg);
+			dp->hostlist_auto_fail_threshold = atoi(optarg);
 			if (dp->hostlist_auto_fail_threshold < 1 || dp->hostlist_auto_fail_threshold>20)
 			{
 				DLOG_ERR("auto hostlist fail threshold must be within 1..20\n");
@@ -2542,7 +2547,7 @@ int main(int argc, char **argv)
 			dp->b_hostlist_auto_fail_threshold = true;
 			break;
 		case IDX_HOSTLIST_AUTO_FAIL_TIME:
-			dp->hostlist_auto_fail_time = (uint8_t)atoi(optarg);
+			dp->hostlist_auto_fail_time = atoi(optarg);
 			if (dp->hostlist_auto_fail_time < 1)
 			{
 				DLOG_ERR("auto hostlist fail time is not valid\n");
@@ -2551,7 +2556,7 @@ int main(int argc, char **argv)
 			dp->b_hostlist_auto_fail_time = true;
 			break;
 		case IDX_HOSTLIST_AUTO_RETRANS_THRESHOLD:
-			dp->hostlist_auto_retrans_threshold = (uint8_t)atoi(optarg);
+			dp->hostlist_auto_retrans_threshold = atoi(optarg);
 			if (dp->hostlist_auto_retrans_threshold < 2 || dp->hostlist_auto_retrans_threshold>10)
 			{
 				DLOG_ERR("auto hostlist fail threshold must be within 2..10\n");

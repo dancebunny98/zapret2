@@ -36,7 +36,9 @@ ask_target
 
 [ -d "$ZBIN" ] || mkdir -p "$ZBIN"
 
+CFLAGS_BASE="$CFLAGS"
 for t in $TGT; do
+        CFLAGS="$CFLAGS_BASE $MINSIZE"
 	buildenv $t
 
 	translate_target $t || {
@@ -48,8 +50,8 @@ for t in $TGT; do
 
 	make clean
 	OPTIMIZE=$OPTIMIZE \
-	CFLAGS="-static-libgcc -static -I$STAGING_DIR/include $MINSIZE $CFLAGS" \
-	LDFLAGS="-L$STAGING_DIR/lib $LDMINSIZE $LDFLAGS" \
+	CFLAGS="-static-libgcc -I$STAGING_DIR/include $CFLAGS $CFLAGS_PIC" \
+	LDFLAGS="-L$STAGING_DIR/lib $LDMINSIZE $LDFLAGS_PIE $LDFLAGS" \
 	make
 
 	[ -d "$ZBIN/$ZBINTARGET" ] || mkdir "$ZBIN/$ZBINTARGET"

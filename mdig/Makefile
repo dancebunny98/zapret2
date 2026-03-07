@@ -1,8 +1,11 @@
 CC ?= cc
 OPTIMIZE ?= -Os
-CFLAGS += -std=gnu99 $(OPTIMIZE)
+CFLAGS_PIC = -fPIC
+CFLAGS += -std=gnu99 $(OPTIMIZE) $(CFLAGS_PIC)
 CFLAGS_BSD = -Wno-address-of-packed-member
 CFLAGS_WIN = -static
+LDFLAGS_PIE = -pie
+LDFLAGS +=  $(LDFLAGS_PIE)
 LIBS = -lpthread
 LIBS_ANDROID =
 LIBS_WIN = -lws2_32

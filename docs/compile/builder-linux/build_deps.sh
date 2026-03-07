@@ -61,10 +61,21 @@ build_lua()
 }
 build_luajit()
 {
+	local CFL="$CFLAGS"
+	local SYSMALLOC=
 (
 	cd luajit2-*
+	CFLAGS="-Os"
 	make clean
-	make BUILDMODE=static XCFLAGS=-DLUAJIT_DISABLE_FFI HOST_CC="$HOST_CC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP TARGET_CFLAGS="$OPTIMIZE $MINSIZE $CFLAGS" TARGET_LDFLAGS="$LDMINSIZE $LDFLAGS"
+	case $TARGET in
+		aarch64*|mips64*)
+			# sysmalloc can cause troubles without GC64. GC64 slows down by 10-15%. better not to use sysmalloc and leave lj_alloc.
+			;;
+		*)
+			# save some exe size
+			SYSMALLOC=-DLUAJIT_USE_SYSMALLOC
+	esac
+	make BUILDMODE=static XCFLAGS="$SYSMALLOC -DLUAJIT_DISABLE_FFI $CFLAGS_PIC" HOST_CC="$HOST_CC" CROSS= CC="$CC" TARGET_AR="$AR rcus" TARGET_STRIP=$STRIP TARGET_CFLAGS="$OPTIMIZE $MINSIZE $CFL" TARGET_LDFLAGS="$CPU $LDMINSIZE $LDFLAGS"
 	make install PREFIX= DESTDIR="$STAGING_DIR"
 )
 }
@@ -89,8 +100,11 @@ dl_deps
 check_toolchains
 ask_target
 
+CFLAGS_BASE="$CFLAGS"
 for t in $TGT; do
+        CFLAGS="$CFLAGS_BASE"
 	buildenv $t
+	CFLAGS="$CFLAGS $CFLAGS_PIC"
 	pushd "$DEPS"
 	install_h_files
 	build_netlink

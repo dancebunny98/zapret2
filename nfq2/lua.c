@@ -1868,7 +1868,7 @@ static bool lua_reconstruct_ip6exthdr(lua_State *L, int idx, struct ip6_hdr *ip6
 {
 	LUA_STACK_GUARD_ENTER(L)
 	// proto = last header type
-	if (*len<sizeof(struct tcphdr)) return false;
+	if (*len<sizeof(struct ip6_hdr)) return false;
 
 	uint8_t *last_proto = &ip6->ip6_ctlun.ip6_un1.ip6_un1_nxt;
 	size_t filled = sizeof(struct ip6_hdr);
@@ -1905,11 +1905,24 @@ static bool lua_reconstruct_ip6exthdr(lua_State *L, int idx, struct ip6_hdr *ip6
 				lua_getfield(L,-1, "data");
 				if (lua_type(L,-1)!=LUA_TSTRING) goto err;
 				if (!(p=(uint8_t*)lua_tolstring(L,-1,&l))) l=0;
-				if (l<6 || (l+2)>left || (type==IPPROTO_AH ? (l>=1024 || ((l+2) & 3)) : (l>=2048 || ((l+2) & 7)))) goto err;
-				memcpy(data+2,p,l);
-				l+=2;
+
+				if (l<6 || (l+2)>left) goto err;
+				if (type==IPPROTO_AH)
+				{
+					if (l>=1024 || ((l+2) & 3)) goto err;
+					memcpy(data+2,p,l);
+					l+=2;
+					data[1] = (l>>2)-2;
+				}
+				else
+				{
+					if (l>=2048 || ((l+2) & 7)) goto err;
+					memcpy(data+2,p,l);
+					l+=2;
+					data[1] = (l>>3)-1;
+				}
+
 				data[0] = next; // may be overwritten later
-				data[1] = (type==IPPROTO_AH) ? (l>>2)-2 : (l>>3)-1;
 				if (!preserve_next) *last_proto = type;
 				last_proto = data; // first byte of header holds type
 				left -= l; data += l; filled += l;
@@ -2018,7 +2031,7 @@ bool lua_reconstruct_iphdr(lua_State *L, int idx, struct ip *ip, size_t *len)
 
 	LUA_STACK_GUARD_ENTER(L)
 
-	if (*len<sizeof(struct ip) || lua_type(L,-1)!=LUA_TTABLE) return false;
+	if (*len<sizeof(struct ip) || lua_type(L,idx)!=LUA_TTABLE) return false;
 
 	ip->ip_v = IPVERSION;
 
@@ -2188,7 +2201,7 @@ err:
 }
 bool lua_reconstruct_tcphdr(lua_State *L, int idx, struct tcphdr *tcp, size_t *len)
 {
-	if (*len<sizeof(struct tcphdr) || lua_type(L,-1)!=LUA_TTABLE) return false;
+	if (*len<sizeof(struct tcphdr) || lua_type(L,idx)!=LUA_TTABLE) return false;
 
 	LUA_STACK_GUARD_ENTER(L)
 
@@ -2263,7 +2276,7 @@ static int luacall_reconstruct_tcphdr(lua_State *L)
 
 bool lua_reconstruct_udphdr(lua_State *L, int idx, struct udphdr *udp)
 {
-	if (lua_type(L,-1)!=LUA_TTABLE) return false;
+	if (lua_type(L,idx)!=LUA_TTABLE) return false;
 
 	LUA_STACK_GUARD_ENTER(L)
 
@@ -2307,7 +2320,7 @@ static int luacall_reconstruct_udphdr(lua_State *L)
 
 bool lua_reconstruct_icmphdr(lua_State *L, int idx, struct icmp46 *icmp)
 {
-	if (lua_type(L,-1)!=LUA_TTABLE) return false;
+	if (lua_type(L,idx)!=LUA_TTABLE) return false;
 
 	LUA_STACK_GUARD_ENTER(L)
 
@@ -3714,7 +3727,7 @@ static void lua_xtime(lua_State *L, struct tm *(*timefunc)(const time_t *,struct
 		lua_pushf_int(L,"isdst", t.tm_isdst);
 		lua_pushf_str(L,"zone", t.tm_zone);
 
-		char s[24];
+		char s[40];
 		snprintf(s,sizeof(s),"%02d.%02d.%04d %02d:%02d:%02d", t.tm_mday, t.tm_mon + 1, t.tm_year + 1900, t.tm_hour, t.tm_min, t.tm_sec);
 		lua_pushf_str(L,"str", s);
 	}

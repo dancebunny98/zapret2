@@ -331,7 +331,7 @@ bool IsHttpReply(const uint8_t *data, size_t len)
 		data[10]>='0' && data[10]<='9' &&
 		data[11]>='0' && data[11]<='9';
 }
-int HttpReplyCode(const uint8_t *data, size_t len)
+int HttpReplyCode(const uint8_t *data)
 {
 	return (data[9]-'0')*100 + (data[10]-'0')*10 + (data[11]-'0');
 }
@@ -370,7 +370,7 @@ bool HttpReplyLooksLikeDPIRedirect(const uint8_t *data, size_t len, const char *
 	
 	if (!host || !*host || !IsHttpReply(data, len)) return false;
 	
-	code = HttpReplyCode(data,len);
+	code = HttpReplyCode(data);
 	
 	if ((code!=302 && code!=307) || !HttpExtractHeader(data,len,"\nLocation:",loc,sizeof(loc))) return false;
 
@@ -565,7 +565,7 @@ bool TLSFindExtLenOffsetInHandshake(const uint8_t *data, size_t len, size_t *off
 }
 bool TLSFindExtLen(const uint8_t *data, size_t len, size_t *off)
 {
-	if (!TLSFindExtLenOffsetInHandshake(data+5,len-5,off))
+	if (len<5 || !TLSFindExtLenOffsetInHandshake(data+5,len-5,off))
 		return false;
 	*off+=5;
 	return true;
@@ -1252,6 +1252,13 @@ static int cmp_range64(const void * a, const void * b)
 {
 	return (((struct range64*)a)->offset < ((struct range64*)b)->offset) ? -1 : (((struct range64*)a)->offset > ((struct range64*)b)->offset) ? 1 : 0;
 }
+/*
+static bool intersected_u64(uint64_t l1, uint64_t r1, uint64_t l2, uint64_t r2)
+{
+	return l1 <= r2 && l2 <= r1;
+}
+*/
+
 bool QUICDefragCrypto(const uint8_t *clean,size_t clean_len, uint8_t *defrag,size_t *defrag_len, bool *bFull)
 {
 	// Crypto frame can be split into multiple chunks
@@ -1265,7 +1272,7 @@ bool QUICDefragCrypto(const uint8_t *clean,size_t clean_len, uint8_t *defrag,siz
 	uint64_t offset,sz,szmax=0,zeropos=0,pos=0;
 	bool found=false;
 	struct range64 ranges[MAX_DEFRAG_PIECES];
-	int i,range=0;
+	int i,j,range=0;
 
 	while(pos<clean_len)
 	{
@@ -1287,24 +1294,54 @@ bool QUICDefragCrypto(const uint8_t *clean,size_t clean_len, uint8_t *defrag,siz
 			if ((pos+sz)>clean_len) return false;
 
 			if ((offset+sz)>defrag_data_len) return false; // defrag buf overflow
+
+			// remove exact duplicates early to save cpu
+			for(i=0;i<range;i++)
+				if (ranges[i].offset==offset && ranges[i].len==sz)
+					goto skip_range;
+
 			if (zeropos < offset)
 				// make sure no uninitialized gaps exist in case of not full fragment coverage
 				memset(defrag_data+zeropos,0,offset-zeropos);
 			if ((offset+sz) > zeropos)
 				zeropos=offset+sz;
-			memcpy(defrag_data+offset,clean+pos,sz);
-			if ((offset+sz) > szmax) szmax = offset+sz;
 
 			found=true;
-			pos+=sz;
-
+			if ((offset+sz) > szmax) szmax = offset+sz;
+			memcpy(defrag_data+offset,clean+pos,sz);
 			ranges[range].offset = offset;
 			ranges[range].len = sz;
 			range++;
+skip_range:
+			pos+=sz;
 		}
 	}
 	if (found)
 	{
+		qsort(ranges, range, sizeof(*ranges), cmp_range64);
+
+//		for(i=0 ; i<range ; i++)
+//			printf("range1 %llu-%llu\n",ranges[i].offset,ranges[i].offset+ranges[i].len);
+
+		if (range>0)
+		{
+			for (j=0,i=1; i < range; i++)
+			{
+				uint64_t current_end = ranges[j].offset + ranges[j].len;
+				uint64_t next_start = ranges[i].offset;
+				uint64_t next_end = ranges[i].offset + ranges[i].len;
+
+				if (next_start <= current_end)
+					ranges[j].len = MAX(next_end,current_end) - ranges[j].offset;
+				else
+					ranges[++j] = ranges[i];
+			}
+			range = j+1;
+		}
+
+//		for(i=0 ; i<range ; i++)
+//			printf("range2 %llu-%llu\n",ranges[i].offset,ranges[i].offset+ranges[i].len);
+
 		defrag[0] = 6;
 		defrag[1] = 0; // offset
 		// 2..9 - length 64 bit
@@ -1313,21 +1350,7 @@ bool QUICDefragCrypto(const uint8_t *clean,size_t clean_len, uint8_t *defrag,siz
 		defrag[2] |= 0xC0; // 64 bit value
 		*defrag_len = (size_t)(szmax+10);
 
-		qsort(ranges, range, sizeof(*ranges), cmp_range64);
-
-		//for(i=0 ; i<range ; i++)
-		//	printf("RANGE %zu len %zu\n",ranges[i].offset,ranges[i].len);
-
-		for(i=0,offset=0,*bFull=true ; i<range ; i++)
-		{
-			if (ranges[i].offset!=offset)
-			{
-				*bFull = false;
-				break;
-			}
-			offset += ranges[i].len;
-		}
-
+		*bFull = range==1 && !ranges[0].offset;
 		//printf("bFull=%u\n",*bFull);
 	}
 	return found;
@@ -1349,6 +1372,8 @@ bool IsQUICInitial(const uint8_t *data, size_t len)
 	// DCID
 	if (data[offset] > QUIC_MAX_CID_LENGTH) return false;
 	offset += 1 + data[offset];
+
+	if (offset>=len) return false;
 
 	// SCID
 	if (data[offset] > QUIC_MAX_CID_LENGTH) return false;

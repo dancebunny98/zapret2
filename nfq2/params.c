@@ -130,7 +130,7 @@ static int DLOG_FILENAME(const char *filename, const char *format, ...)
 }
 static void file_log_function(int priority, const char *line)
 {
-	DLOG_FILENAME(params.debug_logfile,"%s",log_buf);
+	DLOG_FILENAME(params.debug_logfile,"%s",line);
 }
 
 #ifdef __ANDROID__

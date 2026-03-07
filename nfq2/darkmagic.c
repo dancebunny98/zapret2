@@ -803,8 +803,8 @@ static BOOL RemoveTokenPrivs(void)
 							if (memcmp(&privs->Privileges[k].Luid, &luid_SeChangeNotifyPrivilege, sizeof(LUID)))
 								privs->Privileges[k].Attributes = SE_PRIVILEGE_REMOVED;
 						}
+						bRes = AdjustTokenPrivileges(hToken, FALSE, privs, dwSize, NULL, NULL);
 					}
-					bRes = AdjustTokenPrivileges(hToken, FALSE, privs, dwSize, NULL, NULL);
 					free(privs);
 				}
 			}

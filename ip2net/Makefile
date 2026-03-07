@@ -1,8 +1,12 @@
 CC ?= cc
 OPTIMIZE ?= -Os
-CFLAGS += -std=gnu99 $(OPTIMIZE) -flto=auto
+CFLAGS_PIC = -fPIC
+CFLAGS += -std=gnu99 $(OPTIMIZE) -flto=auto $(CFLAGS_PIC)
 CFLAGS_BSD = -Wno-address-of-packed-member
 CFLAGS_WIN = -static
+LDFLAGS_PIE = -pie
+LDFLAGS +=  $(LDFLAGS_PIE)
+
 LIBS = 
 LIBS_WIN = -lws2_32
 SRC_FILES = ip2net.c qsort.c

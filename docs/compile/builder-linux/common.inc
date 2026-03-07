@@ -5,10 +5,14 @@ TOOLCHAINS="$EXEDIR/toolchain"
 DEPS="$EXEDIR/deps"
 STAGE="$EXEDIR/staging"
 OPTIMIZE=${OPTIMIZE:--Oz}
-MINSIZE="${MINSIZE:--flto=auto -ffunction-sections -fdata-sections}"
+#MINSIZE="${MINSIZE:--flto=auto -ffunction-sections -fdata-sections}"
+MINSIZE="${MINSIZE:--ffunction-sections -fdata-sections}"
 LDMINSIZE="${LDMINSIZE:--Wl,--gc-sections -flto=auto}"
 #CFLAGS=""
 LDFLAGS="-lgcc_eh $LDFLAGS"
+# PIE makes ASLR working but adds 5% to size
+# PIE does not work for arm32 and all mips
+PIE=${PIE:-0}
 HOSTCC=${HOSTCC:-cc}
 LUA_VER=${LUA_VER:-5.5}
 LUA_RELEASE=${LUA_RELEASE:-5.5.0}
@@ -19,7 +23,7 @@ nproc=$(nproc)
 
 TARGETS="\
 aarch64-unknown-linux-musl \
-arm-unknown-linux-musleabi \
+armv6-unknown-linux-musleabi \
 i586-unknown-linux-musl \
 x86_64-unknown-linux-musl \
 mips-unknown-linux-muslsf \
@@ -34,7 +38,7 @@ target_has_luajit()
 {
 	case "$1" in
 		aarch64-unknown-linux-musl| \
-		arm-unknown-linux-musleabi| \
+		armv6-unknown-linux-musleabi| \
 		x86_64-unknown-linux-musl| \
 		mips-unknown-linux-muslsf| \
 		mips64-unknown-linux-musl| \
@@ -89,7 +93,27 @@ buildenv()
 	export PKG_CONFIG_PATH=$STAGING_DIR/lib/pkgconfig
 	OLDPATH="$PATH"
 	export PATH="$PATH:$TOOLCHAINS/$TARGET/bin"
+
+	CPU=
+	CFLAGS_PIC=
+	LDFLAGS_PIE=-static
+	# not all archs support -static-pie. if does not support - it produces dynamic executable
+	# "-static -static-pie" causes segfaults
+	case $1 in
+		armv6-*)
+			CPU="-mthumb -msoft-float"
+			CFLAGS="$CPU $CFLAGS"
+			;;
+		mips*)
+			;;
+		*)
+			[ "$PIE" = 1 ] && {
+				CFLAGS_PIC=-fPIC
+				LDFLAGS_PIE="-static-pie"
+			}
+	esac
 }
+
 buildenv_clear()
 {
 	export PATH="$OLDPATH" TARGET= CC= LD= AR= NM= STRIP= STAGING_DIR= PKG_CONFIG_PATH=
@@ -249,7 +273,7 @@ translate_target()
 		aarch64-unknown-linux-musl)
 			ZBINTARGET=linux-arm64
 			;;
-		arm-unknown-linux-musleabi)
+		armv6-unknown-linux-musleabi)
 			ZBINTARGET=linux-arm
 			;;
 		x86_64-unknown-linux-musl)

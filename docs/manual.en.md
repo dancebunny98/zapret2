@@ -525,9 +525,13 @@ ipfw add $RULE divert $PORT_DIVERT udp from any $PORTS_UDP to any in not diverte
 While traffic interception via `pf divert-to` is theoretically possible, the loop prevention mechanism is broken in practice, making `pf` unusable for this purpose.
 On pfSense and OPNsense, additional steps are required to enable both `pf` and `ipfw` simultaneously. This frequently leads to issues, conflicts, and glitches.
 
+For pfSense installation and startup, use: [pfSense setup](pfsense.md).
+
 ## Traffic interception in the OpenBSD kernel
 
 OpenBSD relies solely on `pf`. Its `divert` loop prevention mechanism works correctly.
+
+Practical setup for both modes and blockcheck2-to-runtime integration is described here: [OpenBSD setup](openbsd.md).
 
 The first approach involves intercepting all outbound traffic by port, while intercepting only SYN+ACK, FIN, and RST for inbound TCP. This allows for the use of `autottl` mode and ensures `conntrack` functions correctly without putting heavy load on the CPU. However, this method will break anything that requires other types of incoming traffic.
 
@@ -3531,7 +3535,8 @@ Checks the [instance cutoff](#instance_cutoff) state for `desync.func_instance` 
 function apply_arg_prefix(desync)
 ```
 
-Performs substitution of argument values from `desync.arg` that start with `%` and `#`.
+Performs substitution of argument values from `desync.arg` that start with `%`, `#`,  `\`.
+Multiple calls are safe but do not update desync.arg if blobs were changed.
 
 ### apply_execution_plan
 
@@ -3540,6 +3545,8 @@ function apply_execution_plan(desync, instance)
 ```
 
 Copies the instance identification and its arguments from an [execution plan](#execution_plan) `instance` into the desync object, thereby recreating the desync state as if the `instance` were called directly by C code.
+With one exception : apply_arg_prefix is not applied because args can refer a blob created by previous conditionally executed instances.
+
 The [execution plan](#execution_plan) is provided by the C function `execution_plan()` as an array of `instance` elements.
 
 ### verdict_aggregate
@@ -3558,6 +3565,7 @@ function plan_instance_execute_preapplied(desync, verdict, instance)
 ```
 
 Executes an [execution plan](#execution_plan) `instance`, taking into account the [instance cutoff](#instance_cutoff) and standard [payload](#in-profile-filters) and [range](#in-profile-filters) filters.
+Calls apply_arg_prefix right before calling the instance.
 Returns the aggregation of the current verdict and the `instance` verdict.
 
 The "preapplied" version does not apply execution plan, allowing the calling code to do so.
@@ -4479,6 +4487,7 @@ function cond_lua(desync)
 ```
 
 Executes a Lua code from the "cond_code" argument. The code returns condition value. Direct addressing of the desync table is possible within the code.
+desync.arg is passed without called "apply_arg_prefix" : `%`, `#`, `\` remain as is without substitution because can refer blobs created by previous conditionally executed instances.
 
 
 # Auxiliary programs

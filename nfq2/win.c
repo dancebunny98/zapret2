@@ -28,12 +28,6 @@ bool service_run(int argc, char *argv[])
 	return StartServiceCtrlDispatcherA(ServiceTable);
 }
 
-static void service_set_status(DWORD state)
-{
-	ServiceStatus.dwCurrentState = state;
-	SetServiceStatus(hStatus, &ServiceStatus);
-}
-
 // Control handler function
 void service_controlhandler(DWORD request)
 {
